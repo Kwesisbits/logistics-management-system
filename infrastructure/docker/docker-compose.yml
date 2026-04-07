@@ -1,0 +1,92 @@
+services:
+
+  # ── Zookeeper (required by Kafka) ────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: logistics-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - logistics-network
+
+  # ── Kafka ─────────────────────────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: logistics-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_LOG_RETENTION_HOURS: 720
+    networks:
+      - logistics-network
+
+  # ── Redis (shared: Identity sessions + Order distributed locks) ──────
+  redis:
+    image: redis:7.2-alpine
+    container_name: logistics-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass logistics_redis_local
+    volumes:
+      - redis-data:/data
+    networks:
+      - logistics-network
+
+  # ── Prometheus ────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: logistics-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - logistics-network
+
+  # ── Grafana ───────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: logistics-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - logistics-network
+
+  # ── Jaeger (Distributed Tracing) ──────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: logistics-jaeger
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4318:4318"     # OTLP HTTP
+      - "4317:4317"     # OTLP gRPC
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - logistics-network
+
+networks:
+  logistics-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  grafana-data:
