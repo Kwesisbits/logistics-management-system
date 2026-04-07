@@ -26,14 +26,15 @@ public class InventoryEventConsumer {
     public void onStockReserved(String payload) {
         log.info("Received inventory.stock.reserved: {}", payload);
         try {
-            JsonNode root = objectMapper.readTree(payload);
-            if (!root.hasNonNull("orderId")) {
+            JsonNode root = unwrapPayload(payload);
+            JsonNode data = root.has("payload") ? root.get("payload") : root;
+            if (!data.hasNonNull("orderId")) {
                 log.warn("inventory.stock.reserved payload missing orderId");
                 return;
             }
-            UUID orderId = UUID.fromString(root.get("orderId").asText());
-            UUID correlationId = root.hasNonNull("correlationId")
-                ? UUID.fromString(root.get("correlationId").asText())
+            UUID orderId = UUID.fromString(data.get("orderId").asText());
+            UUID correlationId = data.hasNonNull("correlationId")
+                ? UUID.fromString(data.get("correlationId").asText())
                 : null;
             orderService.advanceToProcessingFromInventory(orderId, correlationId);
         } catch (Exception e) {
@@ -49,19 +50,28 @@ public class InventoryEventConsumer {
     public void onStockReservationFailed(String payload) {
         log.info("Received inventory.stock.reservation_failed: {}", payload);
         try {
-            JsonNode root = objectMapper.readTree(payload);
-            if (!root.hasNonNull("orderId")) {
+            JsonNode root = unwrapPayload(payload);
+            JsonNode data = root.has("payload") ? root.get("payload") : root;
+            if (!data.hasNonNull("orderId")) {
                 log.warn("inventory.stock.reservation_failed payload missing orderId");
                 return;
             }
-            UUID orderId = UUID.fromString(root.get("orderId").asText());
-            UUID correlationId = root.hasNonNull("correlationId")
-                ? UUID.fromString(root.get("correlationId").asText())
+            UUID orderId = UUID.fromString(data.get("orderId").asText());
+            UUID correlationId = data.hasNonNull("correlationId")
+                ? UUID.fromString(data.get("correlationId").asText())
                 : null;
-            String reason = root.hasNonNull("reason") ? root.get("reason").asText() : "Stock reservation failed";
+            String reason = data.hasNonNull("reason") ? data.get("reason").asText() : "Stock reservation failed";
             orderService.markFailedAfterReservation(orderId, correlationId, reason);
         } catch (Exception e) {
             log.error("Failed to handle inventory.stock.reservation_failed", e);
         }
+    }
+
+    private JsonNode unwrapPayload(String raw) throws Exception {
+        JsonNode node = objectMapper.readTree(raw);
+        if (node.isTextual()) {
+            node = objectMapper.readTree(node.asText());
+        }
+        return node;
     }
 }
