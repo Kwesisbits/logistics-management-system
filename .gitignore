@@ -42,8 +42,9 @@ logs/
 # ── Docker ───────────────────────────────────────────────────────────
 infrastructure/docker/data/
 
-# ── Node (React frontend, later) ─────────────────────────────────────
-frontend/node_modules/
-frontend/.next/
-frontend/dist/
-frontend/build/
+# ── Node / Frontend ──────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+.env.local
+*.tsbuildinfo
