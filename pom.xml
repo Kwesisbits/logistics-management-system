@@ -60,6 +60,11 @@
                 <artifactId>jpaseto-jackson</artifactId>
                 <version>${jpaseto.version}</version>
             </dependency>
+            <dependency>
+                <groupId>dev.paseto</groupId>
+                <artifactId>jpaseto-bouncy-castle</artifactId>
+                <version>${jpaseto.version}</version>
+            </dependency>
 
             <!-- Resilience4j -->
             <dependency>
