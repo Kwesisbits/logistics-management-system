@@ -1,48 +1,16 @@
-# Logistics Management System
+# React + Vite
 
-A microservice-based logistics and inventory management platform.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Services
+Currently, two official plugins are available:
 
-| Service | Port | Description |
-|---|---|---|
-| user-identity-service | 8081 | Authentication, users, roles |
-| inventory-service | 8082 | Products, stock levels, reservations |
-| warehouse-service | 8083 | Locations, receipts, movements |
-| order-management-service | 8084 | Orders, assignments, saga orchestration |
-| procurement-service | 8085 | Suppliers, purchase orders |
-| notification-service | 8086 | Event-driven notifications |
-| reporting-service | 8087 | Analytics and read models |
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Local Infrastructure
+## React Compiler
 
-| Tool | URL | Purpose |
-|---|---|---|
-| Kafka | localhost:9092 | Message broker |
-| Redis | localhost:6379 | Sessions + distributed locks |
-| Prometheus | localhost:9090 | Metrics collection |
-| Grafana | localhost:3001 | Metrics dashboards |
-| Jaeger | localhost:16686 | Distributed tracing |
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Quick Start
+## Expanding the ESLint configuration
 
-```bash
-# 1. Start infrastructure
-cd infrastructure/docker
-docker-compose up -d
-
-# 2. Create Kafka topics (wait 30s after step 1)
-chmod +x ../../infrastructure/kafka/create-topics.sh
-../../infrastructure/kafka/create-topics.sh
-
-# 3. Start services in order: identity → inventory → warehouse → orders → procurement → notification → reporting
-```
-
-## Branch Strategy
-
-| Branch | Purpose |
-|---|---|
-| `main` | Production |
-| `staging` | Pre-production |
-| `develop` | Integration |
-| `feature/*` | Feature work |
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
