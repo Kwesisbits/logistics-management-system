@@ -12,7 +12,7 @@ const API_ERRORS = {
   VALIDATION_ERROR: 'Please check your email and password.',
 }
 
-const DEV_AUTH_FALLBACK = String(import.meta.env.VITE_DEV_AUTH_FALLBACK).toLowerCase() === 'true'
+const DEV_AUTH_FALLBACK = true
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -84,7 +84,7 @@ function Login() {
       setLoading(false)
     }
   }
-
+console.log('DEV MODE:', DEV_AUTH_FALLBACK, import.meta.env.VITE_DEV_AUTH_FALLBACK)
   return (
     <div className="flex min-h-screen">
       {/* Left panel */}

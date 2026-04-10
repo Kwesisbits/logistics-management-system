@@ -46,8 +46,17 @@ export default function CreateOrder() {
     staleTime: 30_000,
   })
 
-  const products = productData?.data ?? productData ?? []
-  const warehouses = warehouseData ?? []
+  const products = Array.isArray(productData?.data) ? productData.data
+               : Array.isArray(productData?.items) ? productData.items
+               : Array.isArray(productData?.content) ? productData.content
+               : Array.isArray(productData) ? productData
+               : []
+
+const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
+                 : Array.isArray(warehouseData?.items) ? warehouseData.items
+                 : Array.isArray(warehouseData?.content) ? warehouseData.content
+                 : Array.isArray(warehouseData) ? warehouseData
+                 : []
 
   const createOrder = useMutation({
     mutationFn: (payload) => ordersApi.post('/', payload),

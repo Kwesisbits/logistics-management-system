@@ -387,7 +387,7 @@ export default function LowStock() {
   const [selected,  setSelected]  = useState(new Set())
 
   const effectiveWarehouse = user?.roleName === 'WAREHOUSE_STAFF' ? user?.warehouseId : warehouse
-  const { data: rawItems = [], isLoading, isError, refetch } = useQuery({
+ const { data: rawItems = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['stock-low', { warehouseId: effectiveWarehouse }],
     queryFn: async () => {
       const response = await inventoryApi.get('/stock/low-stock', {
@@ -395,7 +395,13 @@ export default function LowStock() {
           warehouseId: effectiveWarehouse !== 'All' ? effectiveWarehouse : undefined,
         },
       })
-      return response.data
+      const data = response.data
+      if (Array.isArray(data)) return data
+      if (Array.isArray(data?.data)) return data.data
+      if (Array.isArray(data?.items)) return data.items
+      if (Array.isArray(data?.content)) return data.content
+      console.warn('LowStock: unexpected API shape', data)
+      return []
     },
     staleTime: 0,
     refetchInterval: 60_000,

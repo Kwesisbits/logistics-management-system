@@ -60,7 +60,7 @@ function Sparkline({ color = '#6ee7b7', animate = false }) {
     pathRef.current.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1) 0.3s'
     requestAnimationFrame(() => { pathRef.current.style.strokeDashoffset = '0' })
   }, [animate])
-
+  
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-9 mt-2" preserveAspectRatio="none">
       <defs>
@@ -408,7 +408,7 @@ function Dashboard() {
     queryKey: ['dashboard', 'low-stock', warehouseId],
     queryFn: async () => {
       const r = await inventoryApi.get('/stock/low-stock', { params: { warehouseId } })
-      return r.data
+      return Array.isArray(r.data) ? r.data : (r.data?.data ?? r.data?.items ?? [])
     },
     refetchInterval: 60_000, staleTime: 0,
   })
