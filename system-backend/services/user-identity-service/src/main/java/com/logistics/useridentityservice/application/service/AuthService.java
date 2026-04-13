@@ -2,6 +2,7 @@ package com.logistics.useridentityservice.application.service;
 
 import com.logistics.useridentityservice.api.exception.BusinessException;
 import com.logistics.useridentityservice.application.dto.request.LoginRequest;
+import com.logistics.useridentityservice.application.dto.request.ResetPasswordRequest;
 import com.logistics.useridentityservice.application.dto.response.LoginResponse;
 import com.logistics.useridentityservice.infrastructure.persistence.entity.UserEntity;
 import com.logistics.useridentityservice.infrastructure.persistence.repository.UserJpaRepository;
@@ -76,5 +77,22 @@ public class AuthService {
     public void logout(String token, String tokenId) {
         tokenService.revokeToken(tokenId);
         log.info("User logged out: jti={}", tokenId);
+    }
+
+    /**
+     * Self-service password reset (no email token). Intended for development / internal deployments;
+     * production systems should add email verification or MFA.
+     */
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        userRepository.findByEmail(request.email().toLowerCase()).ifPresent(user -> {
+            if (!user.isActive()) {
+                log.warn("Password reset ignored for deactivated account: {}", request.email());
+                return;
+            }
+            user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+            userRepository.save(user);
+            log.info("Password reset for userId={}", user.getUserId());
+        });
     }
 }

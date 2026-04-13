@@ -1,4 +1,6 @@
 import api from './axios'
+import { serviceBases } from './service-bases'
+import { normalizeSpringPage } from '@/types/api'
 import type { PaginatedResponse, PaginationParams } from '@/types/api'
 import type {
   Order,
@@ -9,11 +11,11 @@ import type {
   AssignOrderRequest,
 } from '@/types/orders'
 
-const BASE = import.meta.env.VITE_ORDERS_SERVICE_URL
+const BASE = serviceBases.orders
 
 export const ordersApi = {
-  getOrders: (params?: PaginationParams & { status?: string; warehouseId?: string; priority?: string }) =>
-    api.get<PaginatedResponse<Order>>(BASE, { params }).then((r) => r.data),
+  getOrders: (params?: PaginationParams & { status?: string; warehouseId?: string; priority?: string }): Promise<PaginatedResponse<Order>> =>
+    api.get(BASE, { params }).then((r) => normalizeSpringPage<Order>(r.data)),
 
   getOrder: (orderId: string) =>
     api.get<Order>(`${BASE}/${orderId}`).then((r) => r.data),

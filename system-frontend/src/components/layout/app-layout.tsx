@@ -1,22 +1,21 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './sidebar'
 import { Header } from './header'
-import { ToastContainer } from '@/components/shared/toast-container'
 
 export function AppLayout() {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <Outlet />
+          <div className="animate-fade-in mx-auto max-w-[1600px]">
+            <Outlet />
+          </div>
         </main>
       </div>
-
-      <ToastContainer />
     </div>
   )
 }

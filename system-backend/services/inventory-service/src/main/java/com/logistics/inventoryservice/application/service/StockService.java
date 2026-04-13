@@ -3,11 +3,14 @@ package com.logistics.inventoryservice.application.service;
 import com.logistics.inventoryservice.api.exception.BusinessException;
 import com.logistics.inventoryservice.application.dto.request.ReserveStockRequest;
 import com.logistics.inventoryservice.application.dto.response.ReservationResponse;
+import com.logistics.inventoryservice.application.dto.response.StockLevelResponse;
 import com.logistics.inventoryservice.infrastructure.persistence.entity.*;
 import com.logistics.inventoryservice.infrastructure.persistence.repository.*;
 import com.logistics.inventoryservice.infrastructure.messaging.OutboxEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -144,5 +147,25 @@ public class StockService {
             "\"payload\":{\"reservationId\":\"%s\",\"orderId\":\"%s\",\"expiresAt\":\"%s\"}}",
             reservation.getReservationId(), request.orderId(), reservation.getExpiresAt()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<StockLevelResponse> listStockLevels(int page, int limit) {
+        return stockLevelRepository.findAll(PageRequest.of(page - 1, limit))
+            .map(StockLevelResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StockLevelResponse> listStockByProduct(UUID productId) {
+        return stockLevelRepository.findAllByProductId(productId).stream()
+            .map(StockLevelResponse::from)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<StockLevelResponse> listLowStockLevels() {
+        return stockLevelRepository.findAllBelowReorderThreshold().stream()
+            .map(StockLevelResponse::from)
+            .toList();
     }
 }

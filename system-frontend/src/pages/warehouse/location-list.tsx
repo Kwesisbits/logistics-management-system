@@ -114,7 +114,7 @@ export function LocationListPage() {
 
   const { data: warehouses } = useQuery({
     queryKey: ['warehouses'],
-    queryFn: warehouseApi.getWarehouses,
+    queryFn: () => warehouseApi.getWarehouses(),
   })
 
   useEffect(() => {

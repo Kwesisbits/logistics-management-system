@@ -2,7 +2,9 @@ package com.logistics.ordermanagementservice.api.controller;
 
 import com.logistics.ordermanagementservice.application.dto.request.CancelOrderRequest;
 import com.logistics.ordermanagementservice.application.dto.request.CreateOrderRequest;
+import com.logistics.ordermanagementservice.application.dto.response.OrderItemResponse;
 import com.logistics.ordermanagementservice.application.dto.response.OrderResponse;
+import com.logistics.ordermanagementservice.application.dto.response.OrderStatusHistoryResponse;
 import com.logistics.ordermanagementservice.application.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -42,6 +45,16 @@ public class OrderController {
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrder(@PathVariable UUID orderId) {
         return ResponseEntity.ok(orderService.getOrder(orderId));
+    }
+
+    @GetMapping("/{orderId}/items")
+    public ResponseEntity<List<OrderItemResponse>> getOrderItems(@PathVariable UUID orderId) {
+        return ResponseEntity.ok(orderService.listOrderItems(orderId));
+    }
+
+    @GetMapping("/{orderId}/history")
+    public ResponseEntity<List<OrderStatusHistoryResponse>> getOrderHistory(@PathVariable UUID orderId) {
+        return ResponseEntity.ok(orderService.listOrderHistory(orderId));
     }
 
     @PostMapping("/{orderId}/submit")

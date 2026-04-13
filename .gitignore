@@ -1,3 +1,9 @@
+# Maven
+target/
+
+# Local dev logs
+.dev-logs/
+
 # Logs
 logs
 *.log

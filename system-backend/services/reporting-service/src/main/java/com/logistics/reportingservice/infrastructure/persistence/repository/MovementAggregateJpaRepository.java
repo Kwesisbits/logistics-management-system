@@ -10,4 +10,8 @@ import java.util.UUID;
 public interface MovementAggregateJpaRepository extends JpaRepository<MovementAggregateEntity, UUID> {
 
     Page<MovementAggregateEntity> findAllByWarehouseId(UUID warehouseId, Pageable pageable);
+
+    Page<MovementAggregateEntity> findAllByOrderByPeriodStartDesc(Pageable pageable);
+
+    Page<MovementAggregateEntity> findAllByWarehouseIdOrderByPeriodStartDesc(UUID warehouseId, Pageable pageable);
 }

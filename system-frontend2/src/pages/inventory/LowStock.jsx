@@ -1,27 +1,12 @@
 import { useState, useMemo } from 'react'
 import { AlertTriangle, RefreshCw, Loader2, TrendingDown, Package, ShoppingCart, Search, CheckSquare, Square, XCircle, BarChart2 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import useAuthStore from '../../store/authStore'
-import { inventoryApi } from '../../services/axiosInstance'
+import { inventoryApi, warehouseApi } from '../../services/axiosInstance'
+import { springPageItems } from '../../utils/apiNormalize'
+import { enrichLowStockRow, buildProductLookup, buildWarehouseLookup } from '../../utils/enrichInventory'
 
-// ── REAL API (uncomment when backend is ready) ──
-// import { useQuery } from '@tanstack/react-query'
-// import api from '../../lib/axios'
-//
-// function useLowStock(warehouseId) {
-//   return useQuery({
-//     queryKey: ['stock-low', { warehouseId }],
-//     queryFn: () =>
-//       api.get('/inventory/stock/low-stock', {
-//         params: { warehouseId: warehouseId !== 'All' ? warehouseId : undefined },
-//       }).then(r => r.data),
-//     staleTime: 0,
-//     refetchInterval: 60_000,
-//   })
-// }
-
-const WAREHOUSES  = ['WareHouse', 'Accra Main', 'Tema Branch', 'Kumasi Hub']
-const CATEGORIES  = ['All', 'Hardware', 'Packaging', 'Storage']
+const CATEGORIES = ['All', 'Hardware', 'Packaging', 'Storage']
 const SORT_OPTIONS = [
   { value: 'qty',  label: 'Lowest qty first' },
   { value: 'pct',  label: 'Worst % first'    },
@@ -30,8 +15,10 @@ const SORT_OPTIONS = [
 
 // ── severity helper ──
 function getSeverity(item) {
+  const rt = item.reorderThreshold ?? 0
   if (item.quantityAvailable === 0) return 'out'
-  if (item.quantityAvailable / item.reorderThreshold <= 0.3) return 'critical'
+  if (rt <= 0) return 'low'
+  if (item.quantityAvailable / rt <= 0.3) return 'critical'
   return 'low'
 }
 
@@ -275,7 +262,8 @@ function BulkBar({ selected, onCreatePOs, onClear }) {
 function StockRow({ item, isSelected, onToggleSelect, isAdmin, onCreatePO }) {
   const sev    = getSeverity(item)
   const styles = SEVERITY_STYLES[sev]
-  const pct    = Math.min((item.quantityAvailable / item.reorderThreshold) * 100, 100)
+  const rt = Math.max(item.reorderThreshold ?? 1, 1)
+  const pct = Math.min((item.quantityAvailable / rt) * 100, 100)
   const isOut  = item.quantityAvailable === 0
 
   return (
@@ -288,14 +276,14 @@ function StockRow({ item, isSelected, onToggleSelect, isAdmin, onCreatePO }) {
         ${isSelected ? 'bg-[#B0E4CC]/15 dark:bg-[#285A48]/15' : ''}
         ${styles.row}
       `}
-      onClick={() => onToggleSelect(item.sku)}
+      onClick={() => onToggleSelect(`${item.productId}|${item.locationId}`)}
     >
       {/* Checkbox */}
       <div onClick={e => e.stopPropagation()}>
         <input
           type="checkbox"
           checked={isSelected}
-          onChange={() => onToggleSelect(item.sku)}
+          onChange={() => onToggleSelect(`${item.productId}|${item.locationId}`)}
           className="w-4 h-4 rounded accent-[#285A48] cursor-pointer"
         />
       </div>
@@ -377,63 +365,120 @@ function EmptyState() {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 export default function LowStock() {
-  const user    = useAuthStore(s => s.user)
+  const user = useAuthStore((s) => s.user)
   const isAdmin = user?.roleName === 'ADMIN'
+  const staffWid = user?.roleName === 'WAREHOUSE_STAFF' ? String(user?.warehouseId ?? '') : ''
 
-  const [warehouse, setWarehouse] = useState(user?.roleName === 'WAREHOUSE_STAFF' ? user?.warehouseId : 'All')
-  const [category,  setCategory]  = useState('All')
-  const [search,    setSearch]    = useState('')
-  const [sortBy,    setSortBy]    = useState('qty')
-  const [selected,  setSelected]  = useState(new Set())
+  const [warehouse, setWarehouse] = useState(staffWid || 'All')
+  const [category, setCategory] = useState('All')
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('qty')
+  const [selected, setSelected] = useState(new Set())
 
-  const effectiveWarehouse = user?.roleName === 'WAREHOUSE_STAFF' ? user?.warehouseId : warehouse
- const { data: rawItems = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['stock-low', { warehouseId: effectiveWarehouse }],
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses', 'low-stock'],
     queryFn: async () => {
-      const response = await inventoryApi.get('/stock/low-stock', {
-        params: {
-          warehouseId: effectiveWarehouse !== 'All' ? effectiveWarehouse : undefined,
-        },
-      })
+      const r = await warehouseApi.get('/warehouses', { params: { page: 1, limit: 200 } })
+      return springPageItems(r.data)
+    },
+    staleTime: 60_000,
+  })
+  const warehouseList = warehousesData ?? []
+
+  const { data: productsData } = useQuery({
+    queryKey: ['products', 'low-stock-lookup'],
+    queryFn: async () => {
+      const r = await inventoryApi.get('/products', { params: { page: 1, limit: 500 } })
+      return springPageItems(r.data)
+    },
+    staleTime: 60_000,
+  })
+  const productById = useMemo(() => buildProductLookup(productsData ?? []), [productsData])
+  const warehouseById = useMemo(() => buildWarehouseLookup(warehouseList), [warehouseList])
+
+  const locationQueries = useQueries({
+    queries: warehouseList.map((w) => ({
+      queryKey: ['locations', 'low-stock', String(w.warehouseId)],
+      queryFn: async () => {
+        const r = await warehouseApi.get('/locations', { params: { warehouseId: w.warehouseId } })
+        return Array.isArray(r.data) ? r.data : []
+      },
+      enabled: warehouseList.length > 0,
+    })),
+  })
+
+  const locationMeta = useMemo(() => {
+    const warehouseIdByLocationId = new Map()
+    const locationLabelById = new Map()
+    for (const q of locationQueries) {
+      const list = q.data
+      if (!Array.isArray(list)) continue
+      for (const loc of list) {
+        const lid = String(loc.locationId)
+        warehouseIdByLocationId.set(lid, String(loc.warehouseId))
+        const label = [loc.zone, loc.aisle, loc.shelf, loc.bin].filter(Boolean).join(' · ') || loc.locationCode || lid
+        locationLabelById.set(lid, label)
+      }
+    }
+    return { warehouseIdByLocationId, locationLabelById }
+  }, [locationQueries])
+
+  const { data: lowStockRaw = [], isLoading, isError, refetch } = useQuery({
+    queryKey: ['stock-low', 'enriched'],
+    queryFn: async () => {
+      const response = await inventoryApi.get('/stock/low-stock')
       const data = response.data
       if (Array.isArray(data)) return data
-      if (Array.isArray(data?.data)) return data.data
-      if (Array.isArray(data?.items)) return data.items
       if (Array.isArray(data?.content)) return data.content
-      console.warn('LowStock: unexpected API shape', data)
       return []
     },
     staleTime: 0,
     refetchInterval: 60_000,
   })
 
+  const rawItems = useMemo(
+    () =>
+      lowStockRaw.map((row) => enrichLowStockRow(row, productById, warehouseById, locationMeta)),
+    [lowStockRaw, productById, warehouseById, locationMeta],
+  )
+
   // ── Filtered + sorted items ──
   const items = useMemo(() => {
-    let res = rawItems.filter(i => {
-      if (warehouse !== 'All' && i.warehouseId !== warehouse && i.warehouse !== warehouse) return false
-      if (category  !== 'All' && i.category  !== category)  return false
+    let res = rawItems.filter((i) => {
+      if (user?.roleName === 'WAREHOUSE_STAFF' && staffWid) {
+        if (String(i.warehouseId) !== staffWid) return false
+      } else if (warehouse !== 'All') {
+        if (String(i.warehouseId) !== String(warehouse)) return false
+      }
+      if (category !== 'All' && i.category !== category) return false
       const q = search.toLowerCase()
       const name = i.name ?? i.productName ?? ''
       const sku = i.sku ?? ''
       const location = i.location ?? i.locationCode ?? ''
-      if (q && !name.toLowerCase().includes(q) && !sku.toLowerCase().includes(q) && !location.toLowerCase().includes(q)) return false
+      if (q && !name.toLowerCase().includes(q) && !sku.toLowerCase().includes(q) && !location.toLowerCase().includes(q))
+        return false
       return true
     })
 
-    if (sortBy === 'qty')  res = [...res].sort((a, b) => a.quantityAvailable - b.quantityAvailable)
-    if (sortBy === 'pct')  res = [...res].sort((a, b) => (a.quantityAvailable / a.reorderThreshold) - (b.quantityAvailable / b.reorderThreshold))
-    if (sortBy === 'name') res = [...res].sort((a, b) => a.name.localeCompare(b.name))
+    if (sortBy === 'qty') res = [...res].sort((a, b) => a.quantityAvailable - b.quantityAvailable)
+    if (sortBy === 'pct')
+      res = [...res].sort(
+        (a, b) =>
+          (a.quantityAvailable / Math.max(a.reorderThreshold ?? 1, 1)) -
+          (b.quantityAvailable / Math.max(b.reorderThreshold ?? 1, 1)),
+      )
+    if (sortBy === 'name') res = [...res].sort((a, b) => String(a.name).localeCompare(String(b.name)))
 
     return res
-  }, [rawItems, warehouse, category, search, sortBy])
+  }, [rawItems, warehouse, category, search, sortBy, user?.roleName, staffWid])
 
   const outOfStockCount = items.filter(i => i.quantityAvailable === 0).length
 
   // ── Selection helpers ──
-  function toggleSelect(sku) {
-    setSelected(prev => {
+  function toggleSelect(key) {
+    setSelected((prev) => {
       const next = new Set(prev)
-      next.has(sku) ? next.delete(sku) : next.add(sku)
+      next.has(key) ? next.delete(key) : next.add(key)
       return next
     })
   }
@@ -463,7 +508,12 @@ export default function LowStock() {
               onChange={e => setWarehouse(e.target.value)}
               className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-[#408A71] transition-colors hover:border-[#408A71]"
             >
-              {WAREHOUSES.map(w => <option key={w}>{w}</option>)}
+              <option value="All">All warehouses</option>
+              {warehouseList.map((w) => (
+                <option key={w.warehouseId} value={String(w.warehouseId)}>
+                  {w.name}
+                </option>
+              ))}
             </select>
           )}
           <select
@@ -559,11 +609,11 @@ export default function LowStock() {
             {items.length === 0 ? (
               <EmptyState />
             ) : (
-              items.map(item => (
+              items.map((item) => (
                 <StockRow
-                  key={item.sku}
+                  key={`${item.productId}-${item.locationId}`}
                   item={item}
-                  isSelected={selected.has(item.sku)}
+                  isSelected={selected.has(`${item.productId}|${item.locationId}`)}
                   onToggleSelect={toggleSelect}
                   isAdmin={isAdmin}
                   onCreatePO={handleCreatePO}

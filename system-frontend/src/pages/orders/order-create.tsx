@@ -42,7 +42,7 @@ export function OrderCreatePage() {
 
   const warehousesQuery = useQuery({
     queryKey: ['warehouses'],
-    queryFn: warehouseApi.getWarehouses,
+    queryFn: () => warehouseApi.getWarehouses(),
     enabled: isAdmin(),
   })
 

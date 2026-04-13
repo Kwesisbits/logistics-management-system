@@ -43,7 +43,7 @@ export function ReceiptCreatePage() {
 
   const { data: warehouses, isLoading: warehousesLoading } = useQuery({
     queryKey: ['warehouses'],
-    queryFn: warehouseApi.getWarehouses,
+    queryFn: () => warehouseApi.getWarehouses(),
   })
 
   const {

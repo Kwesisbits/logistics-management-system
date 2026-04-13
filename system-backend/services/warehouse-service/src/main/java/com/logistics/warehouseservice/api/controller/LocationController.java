@@ -34,4 +34,9 @@ public class LocationController {
     public ResponseEntity<List<LocationResponse>> getLocations(@RequestParam UUID warehouseId) {
         return ResponseEntity.ok(locationService.getLocations(warehouseId));
     }
+
+    @GetMapping("/{locationId}")
+    public ResponseEntity<LocationResponse> getLocation(@PathVariable UUID locationId) {
+        return ResponseEntity.ok(locationService.getLocation(locationId));
+    }
 }

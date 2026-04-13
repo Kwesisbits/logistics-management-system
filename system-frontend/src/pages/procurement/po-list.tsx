@@ -41,12 +41,12 @@ export function PurchaseOrderListPage() {
 
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: procurementApi.getSuppliers,
+    queryFn: () => procurementApi.getSuppliers(),
   })
 
   const { data: warehouses } = useQuery({
     queryKey: ['warehouses'],
-    queryFn: warehouseApi.getWarehouses,
+    queryFn: () => warehouseApi.getWarehouses(),
   })
 
   const {

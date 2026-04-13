@@ -60,7 +60,7 @@ export function ReportsPage() {
 
   const { data: warehouses } = useQuery({
     queryKey: ['warehouses'],
-    queryFn: warehouseApi.getWarehouses,
+    queryFn: () => warehouseApi.getWarehouses(),
   })
 
   const {

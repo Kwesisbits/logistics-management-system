@@ -2,12 +2,13 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import useAuthStore from '../store/authStore'
 import { inventoryApi, ordersApi, warehouseApi } from '../services/axiosInstance'
+import { springPageItems, springPageTotalElements } from '../utils/apiNormalize'
 
 function countFromListOrPagination(payload) {
   if (Array.isArray(payload)) return payload.length
-  if (Array.isArray(payload?.data)) return payload.data.length
-  if (typeof payload?.pagination?.total === 'number') return payload.pagination.total
-  return 0
+  const total = springPageTotalElements(payload)
+  if (typeof total === 'number' && total > 0) return total
+  return springPageItems(payload).length
 }
 
 /**
@@ -41,7 +42,6 @@ export function useOperationalNotifications() {
           limit: 1,
         },
       })
-      if (typeof r.data?.pagination?.total === 'number') return r.data.pagination.total
       return countFromListOrPagination(r.data)
     },
     enabled,
@@ -60,7 +60,6 @@ export function useOperationalNotifications() {
           limit: 1,
         },
       })
-      if (typeof r.data?.pagination?.total === 'number') return r.data.pagination.total
       return countFromListOrPagination(r.data)
     },
     enabled,

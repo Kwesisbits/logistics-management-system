@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueries } from '@tanstack/react-query'
 import {
   Search, Loader2, X, TrendingUp, TrendingDown, Package,
   AlertTriangle, Activity, Download,
@@ -7,7 +7,9 @@ import {
   FileText, ChevronRight
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
-import { inventoryApi } from '../../services/axiosInstance'
+import { inventoryApi, warehouseApi } from '../../services/axiosInstance'
+import { springPageItems } from '../../utils/apiNormalize'
+import { enrichStockLevel, buildProductLookup, buildWarehouseLookup } from '../../utils/enrichInventory'
 
 // ─────────────────────────────────────────────
 // CONFIG
@@ -35,12 +37,12 @@ const WEEKLY_TRENDS = {
 }
 const WEEK_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Today']
 
-const ADJUSTMENT_TYPES = [
-  { value: 'MANUAL_ADJUSTMENT', label: 'Manual Adjustment' },
-  { value: 'DAMAGE_WRITE_OFF',  label: 'Damage Write-Off'  },
-  { value: 'RECOUNT',           label: 'Recount'           },
-  { value: 'RETURN',            label: 'Return'            },
-]
+/** Mock trend lines when present; otherwise flat series from current on-hand (API has no history). */
+function weeklyTrendVals(item) {
+  if (WEEKLY_TRENDS[item.name]) return WEEKLY_TRENDS[item.name]
+  const q = Number(item.quantityOnHand ?? 0)
+  return Array(7).fill(q)
+}
 
 const WAREHOUSES = ['All', 'Accra Main', 'Tema Branch', 'Kumasi Hub']
 const CATEGORIES = ['All', 'Packaging', 'Hardware', 'Storage', 'Safety']
@@ -140,7 +142,7 @@ function CriticalAlerts({ items }) {
           {alerts.map(item => {
             const st = getStatus(item)
             return (
-              <div key={item.sku} className="flex items-center gap-3 bg-white border border-amber-200/70 rounded-lg px-3 py-2.5 shadow-sm">
+              <div key={`${item.productId}-${item.locationId}`} className="flex items-center gap-3 bg-white border border-amber-200/70 rounded-lg px-3 py-2.5 shadow-sm">
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${st === 'out' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
                   {st === 'out' ? 'OUT' : 'CRIT'}
                 </span>
@@ -168,7 +170,7 @@ function LineChartView({ items }) {
   const innerW = W - PAD.left - PAD.right
   const innerH = H - PAD.top - PAD.bottom
 
-  const allVals = items.flatMap(i => WEEKLY_TRENDS[i.name] || [])
+  const allVals = items.flatMap((i) => weeklyTrendVals(i))
   const minV = allVals.length ? Math.min(...allVals) : 0
   const maxV = allVals.length ? Math.max(...allVals) : 1
 
@@ -210,11 +212,10 @@ function LineChartView({ items }) {
           <text key={l} x={xPos(i)} y={H - 6} textAnchor="middle" fontSize="9" fill="#6b7280">{l}</text>
         ))}
         {items.map((item, ci) => {
-          const vals = WEEKLY_TRENDS[item.name]
-          if (!vals) return null
+          const vals = weeklyTrendVals(item)
           const color = colors[ci % colors.length]
           return (
-            <g key={item.sku}>
+            <g key={`${item.productId}-${item.locationId}`}>
               <path d={toPath(vals)} fill="none" stroke={color} strokeWidth="1.75" strokeLinejoin="round" opacity="0.9" />
               {vals.map((v, vi) => (
                 <circle key={vi} cx={xPos(vi)} cy={yPos(v)} r="3.5" fill={color} stroke="#fff" strokeWidth="1" />
@@ -245,12 +246,11 @@ function LineChartView({ items }) {
           <p className="font-semibold text-dark-base border-b border-gray-100 pb-1 mb-1.5">{WEEK_LABELS[hoverDay.dayIdx]}</p>
           <ul className="space-y-1 max-h-40 overflow-y-auto">
             {items.map((item, ci) => {
-              const vals = WEEKLY_TRENDS[item.name]
-              if (!vals) return null
+              const vals = weeklyTrendVals(item)
               const v = vals[hoverDay.dayIdx]
               const color = colors[ci % colors.length]
               return (
-                <li key={item.sku} className="flex justify-between gap-3">
+                <li key={`${item.productId}-${item.locationId}`} className="flex justify-between gap-3">
                   <span className="text-gray-600 truncate" title={item.name}>
                     <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: color }} />
                     {item.name.length > 22 ? `${item.name.slice(0, 22)}…` : item.name}
@@ -264,7 +264,7 @@ function LineChartView({ items }) {
       )}
       <div className="flex flex-wrap gap-3 mt-2">
         {items.map((item, ci) => (
-          <span key={item.sku} className="flex items-center gap-1.5 text-xs text-gray-600">
+          <span key={`${item.productId}-${item.locationId}`} className="flex items-center gap-1.5 text-xs text-gray-600">
             <span className="inline-block w-4 h-1.5 rounded-full" style={{ background: colors[ci % colors.length] }} />
             {item.name.length > 20 ? item.name.slice(0, 20) + '…' : item.name}
           </span>
@@ -340,8 +340,9 @@ function DetailDrawer({ item, onClose }) {
         <div>
           <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Weekly trend</p>
           <div className="flex items-end gap-1 h-16">
-            {(WEEKLY_TRENDS[item.name] || []).map((v, i) => {
-              const max    = Math.max(...(WEEKLY_TRENDS[item.name] || [1]))
+            {weeklyTrendVals(item).map((v, i) => {
+              const series = weeklyTrendVals(item)
+              const max    = Math.max(...series, 1)
               const h      = Math.max((v / max) * 100, 4)
               const isLast = i === WEEK_LABELS.length - 1
               return (
@@ -363,104 +364,12 @@ function DetailDrawer({ item, onClose }) {
 }
 
 // ─────────────────────────────────────────────
-// ADJUST MODAL
-// ─────────────────────────────────────────────
-function AdjustModal({ item, onClose, user }) {
-  const [delta,      setDelta]      = useState('')
-  const [adjType,    setAdjType]    = useState('MANUAL_ADJUSTMENT')
-  const [adjNotes,   setAdjNotes]   = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error,      setError]      = useState('')
-
-  async function handleSubmit() {
-    if (!delta || delta === '0') { setError('Enter a non-zero quantity.'); return }
-    setSubmitting(true); setError('')
-    try {
-      await inventoryApi.post('/stock/adjust', {
-        productId: item.productId,
-        locationId: item.locationId,
-        delta: Number(delta),
-        adjustmentType: adjType,
-        notes: adjNotes || undefined,
-        performedBy: user?.userId,
-      })
-      onClose()
-    } catch {
-      setError('Adjustment failed. Check the quantity and try again.')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-      <div className="app-card rounded-2xl p-6 w-full max-w-sm shadow-xl">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="font-bold text-dark-base">Adjust Stock</h3>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
-            <X size={16} className="text-gray-500" />
-          </button>
-        </div>
-        <p className="text-sm text-gray-600 mb-4">
-          {item.name} <span className="text-gray-400">· {item.location}</span>
-        </p>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">
-              Quantity Delta <span className="text-gray-400">(+ add, − remove)</span>
-            </label>
-            <input
-              type="number" value={delta} onChange={e => setDelta(e.target.value)}
-              placeholder="e.g. 10 or -5"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-dark-base focus:outline-none focus:ring-2 focus:ring-medium-green"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Adjustment Type</label>
-            <select
-              value={adjType} onChange={e => setAdjType(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-dark-base focus:outline-none focus:ring-2 focus:ring-medium-green"
-            >
-              {ADJUSTMENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Notes</label>
-            <textarea
-              value={adjNotes} onChange={e => setAdjNotes(e.target.value)}
-              placeholder="Reason for adjustment..." rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-dark-base focus:outline-none focus:ring-2 focus:ring-medium-green resize-none"
-            />
-          </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
-        </div>
-        <div className="flex gap-3 mt-5">
-          <button
-            onClick={onClose} disabled={submitting}
-            className="flex-1 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-all"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit} disabled={submitting}
-            className="flex-1 py-2 rounded-lg bg-deep-green hover:bg-medium-green text-white text-sm font-semibold disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-          >
-            {submitting && <Loader2 size={14} className="animate-spin" />}
-            {submitting ? 'Saving...' : 'Confirm'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 export default function StockLevels() {
   const user      = useAuthStore(s => s.user)
-  const canAdjust = ['ADMIN', 'WAREHOUSE_STAFF'].includes(user?.roleName)
   const isAdmin   = user?.roleName === 'ADMIN'
+  const staffWid  = user?.roleName === 'WAREHOUSE_STAFF' ? String(user?.warehouseId ?? '') : ''
 
   const [search,     setSearch]     = useState('')
   const [warehouse,  setWarehouse]  = useState('All')
@@ -469,34 +378,93 @@ export default function StockLevels() {
   const [sortKey,    setSortKey]    = useState('name')
   const [sortDir,    setSortDir]    = useState('asc')
   const [detailItem, setDetailItem] = useState(null)
-  const [adjustItem, setAdjustItem] = useState(null)
   const [dateRange,  setDateRange]  = useState('7d')
 
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses', 'stock-levels'],
+    queryFn: async () => {
+      const r = await warehouseApi.get('/warehouses', { params: { page: 1, limit: 200 } })
+      return springPageItems(r.data)
+    },
+    staleTime: 60_000,
+  })
+
+  const { data: productsData } = useQuery({
+    queryKey: ['products', 'stock-levels-lookup'],
+    queryFn: async () => {
+      const r = await inventoryApi.get('/products', { params: { page: 1, limit: 500 } })
+      return springPageItems(r.data)
+    },
+    staleTime: 60_000,
+  })
+
+  const warehouseList = warehousesData ?? []
+  const warehouseById = useMemo(() => buildWarehouseLookup(warehouseList), [warehouseList])
+  const productById = useMemo(() => buildProductLookup(productsData ?? []), [productsData])
+
+  const locationQueries = useQueries({
+    queries: warehouseList.map((w) => ({
+      queryKey: ['locations', String(w.warehouseId)],
+      queryFn: async () => {
+        const r = await warehouseApi.get('/locations', { params: { warehouseId: w.warehouseId } })
+        return Array.isArray(r.data) ? r.data : []
+      },
+      enabled: warehouseList.length > 0,
+    })),
+  })
+
+  const locationMeta = useMemo(() => {
+    const warehouseIdByLocationId = new Map()
+    const locationLabelById = new Map()
+    for (const q of locationQueries) {
+      const list = q.data
+      if (!Array.isArray(list)) continue
+      for (const loc of list) {
+        const lid = String(loc.locationId)
+        warehouseIdByLocationId.set(lid, String(loc.warehouseId))
+        const label = [loc.zone, loc.aisle, loc.shelf, loc.bin].filter(Boolean).join(' · ') || loc.locationCode || lid
+        locationLabelById.set(lid, label)
+      }
+    }
+    return { warehouseIdByLocationId, locationLabelById }
+  }, [locationQueries])
+
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['stock-levels', { warehouse, page }],
+    queryKey: ['stock-levels', { page, staffWid }],
     queryFn: async () => {
       const response = await inventoryApi.get('/stock', {
-        params: {
-          warehouseId: user?.roleName === 'WAREHOUSE_STAFF' ? user?.warehouseId : (warehouse !== 'All' ? warehouse : undefined),
-          page,
-          limit: 50,
-        },
+        params: { page, limit: 100 },
       })
       return response.data
     },
     staleTime: 0,
     placeholderData: (prev) => prev,
   })
-  const rawItems = USE_MOCK ? MOCK_STOCK : (data?.data ?? [])
+
+  const rawItems = useMemo(() => {
+    if (USE_MOCK) return MOCK_STOCK
+    const rows = springPageItems(data)
+    return rows.map((row) =>
+      enrichStockLevel(row, productById, warehouseById, locationMeta),
+    )
+  }, [data, productById, warehouseById, locationMeta])
 
   const PAGE_SIZE = 5
 
   const filtered = useMemo(() => {
-    let res = rawItems.filter(s => {
-      const q      = search.toLowerCase()
-      const matchQ = s.name.toLowerCase().includes(q) || s.sku.toLowerCase().includes(q) || s.location.toLowerCase().includes(q)
-      const matchW = warehouse === 'All' || s.warehouse === warehouse
-      const matchC = category  === 'All' || s.category  === category
+    let res = rawItems.filter((s) => {
+      const q = search.toLowerCase()
+      const matchQ =
+        s.name.toLowerCase().includes(q) ||
+        s.sku.toLowerCase().includes(q) ||
+        String(s.location).toLowerCase().includes(q)
+      let matchW = true
+      if (user?.roleName === 'WAREHOUSE_STAFF' && staffWid) {
+        matchW = String(s.warehouseId) === staffWid
+      } else if (warehouse !== 'All') {
+        matchW = String(s.warehouseId) === String(warehouse)
+      }
+      const matchC = category === 'All' || s.category === category
       return matchQ && matchW && matchC
     })
     res = [...res].sort((a, b) => {
@@ -507,7 +475,7 @@ export default function StockLevels() {
       return 0
     })
     return res
-  }, [rawItems, search, warehouse, category, sortKey, sortDir])
+  }, [rawItems, search, warehouse, category, sortKey, sortDir, user?.roleName, staffWid])
 
   const paged      = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
@@ -598,10 +566,19 @@ export default function StockLevels() {
         </div>
         {isAdmin && (
           <select
-            value={warehouse} onChange={e => { setWarehouse(e.target.value); setPage(1) }}
+            value={warehouse}
+            onChange={(e) => {
+              setWarehouse(e.target.value)
+              setPage(1)
+            }}
             className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-dark-base focus:outline-none focus:ring-2 focus:ring-medium-green w-full sm:w-auto"
           >
-            {WAREHOUSES.map(w => <option key={w}>{w}</option>)}
+            <option value="All">All warehouses</option>
+            {warehouseList.map((w) => (
+              <option key={w.warehouseId} value={String(w.warehouseId)}>
+                {w.name}
+              </option>
+            ))}
           </select>
         )}
         <select
@@ -624,7 +601,7 @@ export default function StockLevels() {
       {isError && (
         <div className="app-card border-red-200 bg-red-50/50 p-8 text-center">
           <p className="text-sm text-red-700 mb-3">Failed to load stock data</p>
-          <button className="px-4 py-2 text-sm bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors">
+          <button type="button" onClick={() => refetch()} className="px-4 py-2 text-sm bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors">
             Retry
           </button>
         </div>
@@ -649,13 +626,12 @@ export default function StockLevels() {
                       </span>
                     </th>
                   ))}
-                  {canAdjust && <th className="px-5 py-3" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paged.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-14 text-center text-sm text-gray-600">
+                    <td colSpan={7} className="py-14 text-center text-sm text-gray-600">
                       No stock records found
                     </td>
                   </tr>
@@ -691,16 +667,6 @@ export default function StockLevels() {
                           {sm.label}
                         </span>
                       </td>
-                      {canAdjust && (
-                        <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
-                          <button
-                            onClick={() => setAdjustItem(s)}
-                            className="opacity-0 group-hover:opacity-100 px-2.5 py-1 text-xs font-medium border border-gray-200 rounded-lg text-deep-green hover:bg-deep-green hover:text-white transition-all"
-                          >
-                            Adjust
-                          </button>
-                        </td>
-                      )}
                     </tr>
                   )
                 })}
@@ -736,9 +702,6 @@ export default function StockLevels() {
 
       {/* ── Detail drawer ── */}
       {detailItem && <DetailDrawer item={detailItem} onClose={() => setDetailItem(null)} />}
-
-      {/* ── Adjust modal ── */}
-      {adjustItem && <AdjustModal item={adjustItem} user={user} onClose={() => setAdjustItem(null)} />}
 
     </div>
   )

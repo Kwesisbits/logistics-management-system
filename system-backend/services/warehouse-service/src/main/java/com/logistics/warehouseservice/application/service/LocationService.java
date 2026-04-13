@@ -45,4 +45,11 @@ public class LocationService {
         return locationRepository.findAllByWarehouseIdAndIsActiveTrue(warehouseId).stream()
             .map(LocationResponse::from).toList();
     }
+
+    @Transactional(readOnly = true)
+    public LocationResponse getLocation(UUID locationId) {
+        StorageLocationEntity entity = locationRepository.findById(locationId)
+            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Location not found"));
+        return LocationResponse.from(entity);
+    }
 }

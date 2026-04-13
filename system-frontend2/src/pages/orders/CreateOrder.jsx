@@ -1,11 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import useAuthStore from '../../store/authStore'
 import { inventoryApi, ordersApi, warehouseApi } from '../../services/axiosInstance'
+import { springPageItems } from '../../utils/apiNormalize'
 
 const emptyLine = () => ({ id: crypto.randomUUID(), productId: '', quantity: 1, unitPrice: 0 })
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+/** Order service only accepts STANDARD | HIGH | URGENT (see OrderService.createOrder). */
+const PRIORITY_VALUES = ['STANDARD', 'HIGH', 'URGENT']
 
 export default function CreateOrder() {
   const navigate = useNavigate()
@@ -14,10 +21,10 @@ export default function CreateOrder() {
   const isStaff  = user?.roleName === 'WAREHOUSE_STAFF'
   const queryClient = useQueryClient()
 
-  // Form fields
+  // Form fields — customerId must be a UUID (see CreateOrderRequest)
   const [customerId,       setCustomerId]       = useState('')
-  const [warehouseId,      setWarehouseId]      = useState(isStaff ? user?.warehouseId ?? '' : '')
-  const [priority,         setPriority]         = useState('MEDIUM')
+  const [warehouseId,      setWarehouseId]      = useState(isStaff ? String(user?.warehouseId ?? '') : '')
+  const [priority,         setPriority]         = useState('STANDARD')
   const [expectedDelivery, setExpectedDelivery] = useState('')
   const [notes,            setNotes]            = useState('')
   const [lines,            setLines]            = useState([emptyLine()])
@@ -39,24 +46,27 @@ export default function CreateOrder() {
   const { data: warehouseData } = useQuery({
     queryKey: ['warehouses', 'lookup'],
     queryFn: async () => {
-      const response = await warehouseApi.get('/warehouses')
+      const response = await warehouseApi.get('/warehouses', { params: { page: 1, limit: 200 } })
       return response.data
     },
-    enabled: isAdmin,
     staleTime: 30_000,
   })
 
-  const products = Array.isArray(productData?.data) ? productData.data
-               : Array.isArray(productData?.items) ? productData.items
-               : Array.isArray(productData?.content) ? productData.content
-               : Array.isArray(productData) ? productData
-               : []
+  const products = springPageItems(productData)
 
-const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
-                 : Array.isArray(warehouseData?.items) ? warehouseData.items
-                 : Array.isArray(warehouseData?.content) ? warehouseData.content
-                 : Array.isArray(warehouseData) ? warehouseData
-                 : []
+  const warehouses = springPageItems(warehouseData)
+
+  useEffect(() => {
+    if (user?.userId) {
+      setCustomerId((c) => (c.trim() ? c : String(user.userId)))
+    }
+  }, [user?.userId])
+
+  useEffect(() => {
+    if (isStaff && user?.warehouseId) {
+      setWarehouseId(String(user.warehouseId))
+    }
+  }, [isStaff, user?.warehouseId])
 
   const createOrder = useMutation({
     mutationFn: (payload) => ordersApi.post('/', payload),
@@ -76,8 +86,14 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
       const updated = { ...l, [field]: value }
       // Auto-fill unit price when product is selected
       if (field === 'productId') {
-        const product = products.find((p) => p.productId === value)
-        updated.unitPrice = product?.unitCost ?? 0
+        const product = products.find((p) => String(p.productId) === String(value))
+        updated.unitPrice = product != null ? Number(product.unitCost) : 0
+      }
+      if (field === 'quantity') {
+        updated.quantity = Number(value)
+      }
+      if (field === 'unitPrice') {
+        updated.unitPrice = Number(value)
       }
       return updated
     }))
@@ -88,14 +104,20 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
 
   function validate() {
     const e = {}
-    if (!customerId.trim())    e.customerId  = 'Customer ID is required'
-    if (!warehouseId)          e.warehouseId = 'Select a warehouse'
-    if (!priority)             e.priority    = 'Select a priority'
-    if (lines.length === 0)    e.lines       = 'Add at least one item'
+    const cid = customerId.trim()
+    if (!cid) e.customerId = 'Customer ID is required'
+    else if (!UUID_RE.test(cid)) {
+      e.customerId = 'must be a valid UUID (the API expects a customer UUID, e.g. your user id)'
+    }
+    if (!warehouseId) e.warehouseId = 'Select a warehouse'
+    if (!PRIORITY_VALUES.includes(priority)) e.priority = 'Select a priority'
+    if (lines.length === 0) e.lines = 'Add at least one item'
     lines.forEach((l, i) => {
-      if (!l.productId)        e[`line_${i}_product`]  = 'Select a product'
-      if (l.quantity < 1)      e[`line_${i}_qty`]      = 'Qty must be at least 1'
-      if (l.unitPrice <= 0)    e[`line_${i}_price`]    = 'Price must be greater than 0'
+      if (!l.productId) e[`line_${i}_product`] = 'Select a product'
+      const q = Number(l.quantity)
+      if (!Number.isFinite(q) || q < 1) e[`line_${i}_qty`] = 'Qty must be at least 1'
+      const up = Number(l.unitPrice)
+      if (!Number.isFinite(up) || up <= 0) e[`line_${i}_price`] = 'Price must be greater than 0'
     })
     return e
   }
@@ -108,14 +130,14 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
     setSubmitting(true)
 
     const payload = {
-      customerId,
-      warehouseId,
+      customerId: customerId.trim(),
+      warehouseId: String(warehouseId),
       priority,
       expectedDelivery: expectedDelivery || undefined,
-      notes:            notes || undefined,
+      notes: notes || undefined,
       items: lines.map((l) => ({
-        productId: l.productId,
-        quantity:  Number(l.quantity),
+        productId: String(l.productId),
+        quantity: Number(l.quantity),
         unitPrice: Number(l.unitPrice),
       })),
     }
@@ -124,11 +146,15 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
       await createOrder.mutateAsync(payload)
       navigate('/orders')
     } catch (err) {
-      const apiError = err?.response?.data?.error
-      if (apiError?.code === 'INSUFFICIENT_STOCK') {
+      const apiErr = err?.apiError ?? err?.response?.data
+      const code = apiErr?.code
+      const msg = apiErr?.message
+      if (code === 'INSUFFICIENT_STOCK') {
         setApiError('Not enough stock for one or more selected items.')
-      } else if (apiError?.code === 'VALIDATION_ERROR') {
-        setApiError('Validation failed. Please review the form fields.')
+      } else if (code === 'VALIDATION_ERROR') {
+        setApiError(msg || 'Validation failed. Check UUIDs and line items.')
+      } else if (msg) {
+        setApiError(msg)
       } else {
         setApiError('Failed to create order. Please try again.')
       }
@@ -160,13 +186,13 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">
-              Customer ID <span className="text-red-400">*</span>
+              Customer ID (UUID) <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              placeholder="e.g. CUST-001"
+              placeholder="e.g. your user id (UUID)"
               className={`w-full px-3 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medium-green transition-all
                 ${errors.customerId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
             />
@@ -178,10 +204,9 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
               Warehouse <span className="text-red-400">*</span>
             </label>
             {isStaff ? (
-              // STAFF: pre-filled, read-only — warehouseId comes from their token
               <input
                 type="text"
-                value={warehouses.find((w) => w.warehouseId === warehouseId)?.name ?? warehouseId}
+                value={warehouses.find((w) => String(w.warehouseId) === String(warehouseId))?.name ?? warehouseId}
                 readOnly
                 className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
               />
@@ -194,7 +219,7 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
               >
                 <option value="">Select warehouse</option>
                 {warehouses.map((w) => (
-                  <option key={w.warehouseId} value={w.warehouseId}>{w.name}</option>
+                  <option key={String(w.warehouseId)} value={String(w.warehouseId)}>{w.name}</option>
                 ))}
               </select>
             )}
@@ -213,9 +238,9 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
               onChange={(e) => setPriority(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green"
             >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
+              <option value="STANDARD">Standard</option>
               <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
             </select>
           </div>
           <div>
@@ -283,7 +308,7 @@ const warehouses = Array.isArray(warehouseData?.data) ? warehouseData.data
                     >
                       <option value="">Select product</option>
                       {products.map((p) => (
-                        <option key={p.productId} value={p.productId}>{p.name}</option>
+                        <option key={String(p.productId)} value={String(p.productId)}>{p.name}</option>
                       ))}
                     </select>
                     {errors[`line_${i}_product`] && (

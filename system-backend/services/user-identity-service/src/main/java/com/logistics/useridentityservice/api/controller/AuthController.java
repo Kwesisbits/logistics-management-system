@@ -1,6 +1,7 @@
 package com.logistics.useridentityservice.api.controller;
 
 import com.logistics.useridentityservice.application.dto.request.LoginRequest;
+import com.logistics.useridentityservice.application.dto.request.ResetPasswordRequest;
 import com.logistics.useridentityservice.application.dto.response.LoginResponse;
 import com.logistics.useridentityservice.application.service.AuthService;
 import jakarta.validation.Valid;
@@ -26,6 +27,13 @@ public class AuthController {
         @RequestAttribute("tokenId") String tokenId
     ) {
         authService.logout(authHeader, tokenId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Always returns 204 to avoid leaking whether an email is registered. */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
         return ResponseEntity.noContent().build();
     }
 }

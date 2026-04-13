@@ -42,12 +42,12 @@ export function PurchaseOrderCreatePage() {
 
   const { data: suppliers, isLoading: suppliersLoading } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: procurementApi.getSuppliers,
+    queryFn: () => procurementApi.getSuppliers(),
   })
 
   const { data: warehouses, isLoading: warehousesLoading } = useQuery({
     queryKey: ['warehouses'],
-    queryFn: warehouseApi.getWarehouses,
+    queryFn: () => warehouseApi.getWarehouses(),
   })
 
   const { data: productsData, isLoading: productsLoading } = useQuery({

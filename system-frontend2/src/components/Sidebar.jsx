@@ -13,13 +13,6 @@ import { useOrdersTotalQuery } from '../hooks/useOrdersTotal'
 
 const navConfig = [
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    path: '/dashboard',
-    roles: ['ADMIN', 'WAREHOUSE_STAFF', 'VIEWER'],
-  },
-  {
     id: 'inventory',
     label: 'Inventory',
     icon: Package,
@@ -30,6 +23,13 @@ const navConfig = [
       { label: 'Low Stock',    path: '/inventory/low-stock', icon: AlertTriangle, roles: ['ADMIN', 'WAREHOUSE_STAFF', 'VIEWER'] },
       { label: 'Batches',      path: '/inventory/batches',   icon: ClipboardList, roles: ['ADMIN', 'WAREHOUSE_STAFF', 'VIEWER'] },
     ],
+  },
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    path: '/dashboard',
+    roles: ['ADMIN', 'WAREHOUSE_STAFF', 'VIEWER'],
   },
   {
     id: 'orders',
@@ -111,8 +111,8 @@ function NavItem({ item, isCollapsed, isMobile, onNavigate, ordersTotal }) {
             w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
             transition-all duration-150 group
             ${isActive
-              ? 'bg-white/10 text-white'
-              : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              ? 'bg-gray-200/90 dark:bg-white/10 text-gray-900 dark:text-white'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
             }
           `}
         >
@@ -120,7 +120,7 @@ function NavItem({ item, isCollapsed, isMobile, onNavigate, ordersTotal }) {
             <item.icon
               size={18}
               className={`transition-colors ${
-                isActive ? 'text-medium-green' : 'text-gray-500 group-hover:text-gray-300'
+                isActive ? 'text-deep-green dark:text-medium-green' : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300'
               }`}
             />
             {item.id === 'orders' && isCollapsed && !isMobile && typeof ordersTotal === 'number' && (
@@ -138,8 +138,8 @@ function NavItem({ item, isCollapsed, isMobile, onNavigate, ordersTotal }) {
                 </span>
               )}
               {open
-                ? <ChevronDown size={13} className="text-gray-600 shrink-0" />
-                : <ChevronRight size={13} className="text-gray-600 shrink-0" />
+                ? <ChevronDown size={13} className="text-gray-500 dark:text-gray-600 shrink-0" />
+                : <ChevronRight size={13} className="text-gray-500 dark:text-gray-600 shrink-0" />
               }
             </>
           )}
@@ -161,7 +161,7 @@ function NavItem({ item, isCollapsed, isMobile, onNavigate, ordersTotal }) {
                     transition-all duration-150
                     ${childActive
                       ? 'bg-medium-green text-white'
-                      : 'text-gray-500 hover:text-gray-200 hover:bg-white/5'
+                      : 'text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5'
                     }
                   `}
                 >
@@ -187,13 +187,13 @@ function NavItem({ item, isCollapsed, isMobile, onNavigate, ordersTotal }) {
         transition-all duration-150 group
         ${isActive
           ? 'bg-medium-green text-white'
-          : 'text-gray-400 hover:bg-white/5 hover:text-white'
+          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
         }
       `}
     >
       <item.icon
         size={18}
-        className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}
+        className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`}
       />
       {!(isCollapsed && !isMobile) && <span>{item.label}</span>}
     </button>
@@ -216,7 +216,7 @@ function Sidebar({ isCollapsed, isMobile, isMobileOpen, onCloseMobile }) {
     <aside
       className={`
         fixed inset-y-0 left-0 z-40 lg:static lg:z-auto h-screen flex flex-col
-        bg-gray-900
+        bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
         transition-all duration-300 ease-in-out transform
         w-60
         ${isMobile ? (isMobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
@@ -224,14 +224,13 @@ function Sidebar({ isCollapsed, isMobile, isMobileOpen, onCloseMobile }) {
         flex-shrink-0
       `}
     >
-      {/* Logo — text only, no icon */}
-      <div className="flex items-center h-16 px-4 flex-shrink-0">
+      <div className="flex items-center h-16 px-4 flex-shrink-0 border-b border-gray-100 dark:border-gray-800">
         {isCollapsed && !isMobile ? (
-          <span className="text-white font-bold text-lg">K</span>
+          <span className="text-deep-green dark:text-white font-bold text-lg">K</span>
         ) : (
           <div>
-            <p className="text-white font-bold text-lg leading-tight">Kratex</p>
-            <p className="text-gray-500 text-xs leading-tight">Warehouse Management</p>
+            <p className="text-gray-900 dark:text-white font-bold text-lg leading-tight">Kratex</p>
+            <p className="text-gray-500 dark:text-gray-500 text-xs leading-tight">Warehouse Management</p>
           </div>
         )}
       </div>
@@ -254,7 +253,7 @@ function Sidebar({ isCollapsed, isMobile, isMobileOpen, onCloseMobile }) {
       <div className="px-2 pb-4">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-all duration-150"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all duration-150"
         >
           <LogOut size={18} className="flex-shrink-0" />
           {!(isCollapsed && !isMobile) && <span>Logout</span>}

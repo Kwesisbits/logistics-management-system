@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import useAuthStore from '../store/authStore'
 import { ordersApi } from '../services/axiosInstance'
+import { springPageTotalElements } from '../utils/apiNormalize'
 
 /**
  * Total order count (from API pagination). Refetches when any `queryKey: ['orders']` query is invalidated (e.g. after create).
@@ -15,9 +16,9 @@ export function useOrdersTotalQuery() {
       const r = await ordersApi.get('/', {
         params: { page: 1, limit: 1, warehouseId },
       })
-      const total = r.data?.pagination?.total
-      if (typeof total === 'number') return total
-      return Array.isArray(r.data?.data) ? r.data.data.length : 0
+      const total = springPageTotalElements(r.data)
+      if (typeof total === 'number' && total > 0) return total
+      return 0
     },
     staleTime: 15_000,
   })

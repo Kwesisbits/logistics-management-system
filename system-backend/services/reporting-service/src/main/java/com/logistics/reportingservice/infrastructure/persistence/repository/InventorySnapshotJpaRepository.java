@@ -10,4 +10,8 @@ import java.util.UUID;
 public interface InventorySnapshotJpaRepository extends JpaRepository<InventorySnapshotEntity, UUID> {
 
     Page<InventorySnapshotEntity> findAllByProductId(UUID productId, Pageable pageable);
+
+    Page<InventorySnapshotEntity> findAllByWarehouseId(UUID warehouseId, Pageable pageable);
+
+    Page<InventorySnapshotEntity> findAllByProductIdAndWarehouseId(UUID productId, UUID warehouseId, Pageable pageable);
 }

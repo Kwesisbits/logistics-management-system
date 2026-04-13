@@ -45,7 +45,7 @@ export function SupplierListPage() {
     refetch,
   } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: procurementApi.getSuppliers,
+    queryFn: () => procurementApi.getSuppliers(),
   })
 
   const createMutation = useMutation({

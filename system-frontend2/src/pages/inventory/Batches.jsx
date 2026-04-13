@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Search, Plus, Loader2 } from 'lucide-react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import useAuthStore from '../../store/authStore'
 import { inventoryApi } from '../../services/axiosInstance'
+import { springPageItems, springPageTotalElements } from '../../utils/apiNormalize'
 
 // ── REAL API (uncomment when backend is ready) ──
 // import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -34,15 +35,6 @@ import { inventoryApi } from '../../services/axiosInstance'
 //   })
 // }
 
-// BatchStatusEnum — only these transitions are valid per the state machine
-const STATUS_TRANSITIONS = {
-  ACTIVE:         ['RECALLED', 'CONSUMED'],
-  PARTIALLY_USED: ['RECALLED', 'CONSUMED'],
-  CONSUMED:       [],
-  RECALLED:       [],
-  EXPIRED:        [],
-}
-
 const statusConfig = {
   ACTIVE:         { label: 'Active',        className: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'   },
   PARTIALLY_USED: { label: 'Partial',       className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'       },
@@ -56,8 +48,6 @@ const ALL_STATUSES = ['All', 'ACTIVE', 'PARTIALLY_USED', 'CONSUMED', 'RECALLED',
 export default function Batches() {
   const user    = useAuthStore((s) => s.user)
   const canEdit = ['ADMIN', 'WAREHOUSE_STAFF'].includes(user?.roleName)
-  const queryClient = useQueryClient()
-
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All')
   const [page, setPage]     = useState(1)
@@ -77,27 +67,18 @@ export default function Batches() {
     staleTime: 30_000,
     placeholderData: (prev) => prev,
   })
-  const batches = data?.data ?? []
-
-  const updateBatchStatus = useMutation({
-    mutationFn: ({ batchId, status: nextStatus }) =>
-      inventoryApi.patch(`/batches/${batchId}/status`, { status: nextStatus }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['batches'] }),
-  })
+  const batches = springPageItems(data)
 
   const filtered = batches.filter((b) => {
     const q = search.toLowerCase()
+    const name = (b.name ?? b.productName ?? b.productId ?? '').toString().toLowerCase()
+    const sku = (b.sku ?? '').toString().toLowerCase()
+    const bn = (b.batchNumber ?? '').toString().toLowerCase()
     return (
-      (b.name.toLowerCase().includes(q) ||
-       b.batchNumber.toLowerCase().includes(q) ||
-       b.sku.toLowerCase().includes(q)) &&
+      (name.includes(q) || bn.includes(q) || sku.includes(q)) &&
       (status === 'All' || b.status === status)
     )
   })
-
-  function handleStatusChange(batchId, newStatus) {
-    updateBatchStatus.mutate({ batchId, status: newStatus })
-  }
 
   return (
     <div className="space-y-5">
@@ -165,19 +146,17 @@ export default function Batches() {
                   <th className="px-6 py-3 text-left font-medium">Mfg Date</th>
                   <th className="px-6 py-3 text-left font-medium">Expiry</th>
                   <th className="px-6 py-3 text-left font-medium">Status</th>
-                  {canEdit && <th className="px-6 py-3 text-left font-medium">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-sm text-gray-400">
+                    <td colSpan={6} className="py-12 text-center text-sm text-gray-400">
                       No batches found
                     </td>
                   </tr>
                 ) : filtered.map((b) => {
                   const cfg        = statusConfig[b.status]
-                  const transitions = STATUS_TRANSITIONS[b.status] ?? []
                   const soonExpiry  = b.expiryDate &&
                     new Date(b.expiryDate) < new Date(Date.now() + 30 * 86400000) &&
                     b.status === 'ACTIVE'
@@ -204,26 +183,6 @@ export default function Batches() {
                           {cfg?.label}
                         </span>
                       </td>
-                      {canEdit && (
-                        <td className="px-6 py-4">
-                          {transitions.length > 0 ? (
-                            <select
-                              defaultValue=""
-                              onChange={(e) => {
-                                if (e.target.value) handleStatusChange(b.batchId, e.target.value)
-                              }}
-                              className="px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-medium-green transition-all"
-                            >
-                              <option value="" disabled>Update status</option>
-                              {transitions.map((t) => (
-                                <option key={t} value={t}>{statusConfig[t]?.label ?? t}</option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-                          )}
-                        </td>
-                      )}
                     </tr>
                   )
                 })}
@@ -232,7 +191,9 @@ export default function Batches() {
           </div>
 
           <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <p className="text-sm text-gray-400">Showing {filtered.length} of {data?.pagination?.total ?? batches.length} batches</p>
+            <p className="text-sm text-gray-400">
+              Showing {filtered.length} of {springPageTotalElements(data)} batches
+            </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}

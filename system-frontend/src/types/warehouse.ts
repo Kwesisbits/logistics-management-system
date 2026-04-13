@@ -65,6 +65,7 @@ export interface CreateReceiptRequest {
   receivedBy: string
   lines: {
     productId: string
+    locationId?: string
     quantityExpected: number
     quantityReceived: number
     batchNumber?: string

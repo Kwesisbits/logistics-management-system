@@ -1,10 +1,94 @@
-function Users() {
+import { useQuery } from '@tanstack/react-query'
+import { Loader2, Users as UsersIcon } from 'lucide-react'
+import { identityApi } from '../services/axiosInstance'
+import { springPageItems } from '../utils/apiNormalize'
+
+export default function Users() {
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['identity', 'users'],
+    queryFn: async () => {
+      const r = await identityApi.get('/users', { params: { page: 1, limit: 100 } })
+      return springPageItems(r.data)
+    },
+    staleTime: 30_000,
+  })
+
+  const rows = data ?? []
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-dark-base mb-4">User Management</h1>
-      <p className="text-gray-500">User management module coming soon.</p>
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold text-dark-base dark:text-white">User management</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Users from identity service (admin)</p>
+      </div>
+
+      {isLoading && (
+        <div className="app-card p-12 flex flex-col items-center gap-2">
+          <Loader2 className="animate-spin text-medium-green" size={28} />
+          <p className="text-sm text-gray-500">Loading users…</p>
+        </div>
+      )}
+
+      {isError && (
+        <div className="app-card p-6 border-red-200 text-red-600 text-sm">
+          Failed to load users (requires ADMIN role and token).{' '}
+          <button type="button" onClick={() => refetch()} className="underline font-medium">
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!isLoading && !isError && (
+        <div className="app-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Role</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Warehouse</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-10 text-center text-gray-400">
+                      No users
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((u) => (
+                    <tr key={u.userId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30">
+                      <td className="px-4 py-3 font-medium text-dark-base dark:text-white">
+                        <span className="inline-flex items-center gap-2">
+                          <UsersIcon size={14} className="text-medium-green shrink-0" />
+                          {u.firstName} {u.lastName}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{u.email}</td>
+                      <td className="px-4 py-3 text-gray-700">{u.role}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                        {u.warehouseId ? String(u.warehouseId).slice(0, 8) + '…' : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            u.active !== false ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40' : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          {u.active !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
-export default Users

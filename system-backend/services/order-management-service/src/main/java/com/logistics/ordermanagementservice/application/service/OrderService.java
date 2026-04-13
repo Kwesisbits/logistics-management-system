@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.logistics.ordermanagementservice.api.exception.BusinessException;
 import com.logistics.ordermanagementservice.application.dto.request.CancelOrderRequest;
 import com.logistics.ordermanagementservice.application.dto.request.CreateOrderRequest;
+import com.logistics.ordermanagementservice.application.dto.response.OrderItemResponse;
 import com.logistics.ordermanagementservice.application.dto.response.OrderResponse;
+import com.logistics.ordermanagementservice.application.dto.response.OrderStatusHistoryResponse;
 import com.logistics.ordermanagementservice.infrastructure.lock.OrderDistributedLock;
 import com.logistics.ordermanagementservice.infrastructure.messaging.OutboxEventPublisher;
 import com.logistics.ordermanagementservice.infrastructure.persistence.entity.OrderEntity;
@@ -26,6 +28,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -107,6 +110,23 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<OrderResponse> listOrders(Pageable pageable) {
         return orderRepository.findAll(pageable).map(OrderResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderItemResponse> listOrderItems(UUID orderId) {
+        OrderEntity order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Order not found"));
+        return order.getItems().stream().map(OrderItemResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderStatusHistoryResponse> listOrderHistory(UUID orderId) {
+        if (!orderRepository.existsById(orderId)) {
+            throw new BusinessException("NOT_FOUND", "Order not found");
+        }
+        return historyRepository.findAllByOrderIdOrderByChangedAtDesc(orderId).stream()
+            .map(OrderStatusHistoryResponse::from)
+            .toList();
     }
 
     @Transactional

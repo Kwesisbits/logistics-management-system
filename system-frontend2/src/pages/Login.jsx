@@ -12,16 +12,85 @@ const API_ERRORS = {
   VALIDATION_ERROR: 'Please check your email and password.',
 }
 
-const DEV_AUTH_FALLBACK = true
+const DEV_AUTH_FALLBACK = import.meta.env.VITE_DEV_AUTH_FALLBACK === 'true'
+
+function permissionsForRole(roleName) {
+  if (!roleName) return []
+  const map = {
+    ADMIN: ['inventory:READ', 'inventory:WRITE', 'orders:READ', 'orders:WRITE', 'reports:READ'],
+    WAREHOUSE_STAFF: ['inventory:READ', 'inventory:WRITE', 'orders:READ', 'orders:WRITE'],
+    VIEWER: ['inventory:READ', 'orders:READ', 'reports:READ'],
+  }
+  return map[roleName] ?? []
+}
+
+/** Maps identity service `LoginResponse.user` to the shape used by Sidebar / guards. */
+function normalizeAuthUser(apiUser) {
+  if (!apiUser) return null
+  const roleName = apiUser.roleName ?? apiUser.role
+  const email = String(apiUser.email ?? '')
+  const local = email.split('@')[0] ?? 'User'
+  const parts = local.split(/[._-]+/).filter(Boolean)
+  const firstName =
+    apiUser.firstName ??
+    (parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase() : 'User')
+  const lastName =
+    apiUser.lastName ??
+    (parts[1] ? parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase() : '')
+  return {
+    userId: apiUser.userId,
+    email,
+    firstName,
+    lastName,
+    roleName,
+    warehouseId: apiUser.warehouseId,
+    permissions: permissionsForRole(roleName),
+  }
+}
 
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showReset, setShowReset] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [resetMessage, setResetMessage] = useState('')
 
   const setAuth = useAuthStore((state) => state.setAuth)
   const navigate = useNavigate()
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault()
+    setError('')
+    setResetMessage('')
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters.')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    setLoading(true)
+    try {
+      await identityApi.post('/auth/reset-password', {
+        email: email.trim().toLowerCase(),
+        newPassword,
+      })
+      setResetMessage('If an account exists for this email, the password has been updated. You can sign in now.')
+      setNewPassword('')
+      setConfirmPassword('')
+      setShowReset(false)
+    } catch (err) {
+      const code = err?.apiError?.code ?? err?.response?.data?.code
+      const msg = err?.apiError?.message ?? err?.response?.data?.message
+      setError(msg || (code === 'VALIDATION_ERROR' ? 'Check email format and password length (8+).' : 'Unable to reset password. Try again.'))
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -75,16 +144,15 @@ function Login() {
 
       const response = await identityApi.post('/auth/login', { email, password })
       const { accessToken, user } = response.data
-      setAuth(accessToken, user)
+      setAuth(accessToken, normalizeAuthUser(user))
       navigate('/dashboard')
     } catch (err) {
-      const code = err?.response?.data?.error?.code
+      const code = err?.apiError?.code ?? err?.response?.data?.code
       setError(API_ERRORS[code] || 'Unable to sign in. Please try again.')
     } finally {
       setLoading(false)
     }
   }
-console.log('DEV MODE:', DEV_AUTH_FALLBACK, import.meta.env.VITE_DEV_AUTH_FALLBACK)
   return (
     <div className="flex min-h-screen">
       {/* Left panel */}
@@ -120,60 +188,148 @@ console.log('DEV MODE:', DEV_AUTH_FALLBACK, import.meta.env.VITE_DEV_AUTH_FALLBA
             <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Warehouse Management System</p>
           </div>
 
-          <h2 className="text-2xl font-bold text-dark-base dark:text-white mb-2">Welcome back</h2>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mb-8">Sign in to your account to continue</p>
+          <h2 className="text-2xl font-bold text-dark-base dark:text-white mb-2">
+            {showReset ? 'Reset password' : 'Welcome back'}
+          </h2>
+          <p className="text-gray-400 dark:text-gray-500 text-sm mb-8">
+            {showReset
+              ? 'Enter your account email and choose a new password (min. 8 characters).'
+              : 'Sign in to your account to continue'}
+          </p>
 
           {error && (
             <div className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-sm px-4 py-3 rounded-lg mb-6 border border-red-200 dark:border-red-900/60">
               {error}
             </div>
           )}
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-dark-base dark:text-gray-200">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
-                  text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
-                  placeholder:text-gray-400 dark:placeholder:text-gray-500
-                  focus:outline-none focus:border-medium-green
-                  transition-colors duration-200"
-              />
+          {resetMessage && (
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-sm px-4 py-3 rounded-lg mb-6 border border-emerald-200 dark:border-emerald-900/60">
+              {resetMessage}
             </div>
+          )}
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-dark-base dark:text-gray-200">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
-                  text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
-                  placeholder:text-gray-400 dark:placeholder:text-gray-500
-                  focus:outline-none focus:border-medium-green
-                  transition-colors duration-200"
-              />
-            </div>
+          {showReset ? (
+            <form onSubmit={handleResetPassword} className="space-y-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-dark-base dark:text-gray-200">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  required
+                  autoComplete="email"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
+                    placeholder:text-gray-400 dark:placeholder:text-gray-500
+                    focus:outline-none focus:border-medium-green transition-colors duration-200"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-dark-base dark:text-gray-200">New password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 8 characters"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
+                    placeholder:text-gray-400 dark:placeholder:text-gray-500
+                    focus:outline-none focus:border-medium-green transition-colors duration-200"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-dark-base dark:text-gray-200">Confirm new password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat new password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
+                    placeholder:text-gray-400 dark:placeholder:text-gray-500
+                    focus:outline-none focus:border-medium-green transition-colors duration-200"
+                />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowReset(false); setError(''); setResetMessage('') }}
+                  className="flex-1 py-3 rounded-lg border border-gray-200 dark:border-gray-600 text-dark-base dark:text-gray-200 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Back to sign in
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 py-3 rounded-lg bg-medium-green hover:bg-deep-green text-white font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loading ? 'Updating…' : 'Update password'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-dark-base dark:text-gray-200">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
+                    placeholder:text-gray-400 dark:placeholder:text-gray-500
+                    focus:outline-none focus:border-medium-green
+                    transition-colors duration-200"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-lg
-                bg-medium-green hover:bg-deep-green
-                text-white font-semibold text-sm
-                transition-colors duration-200
-                disabled:opacity-60 disabled:cursor-not-allowed mt-2"
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-sm font-medium text-dark-base dark:text-gray-200">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => { setShowReset(true); setError(''); setResetMessage('') }}
+                    className="text-xs font-medium text-medium-green hover:text-deep-green hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
+                    placeholder:text-gray-400 dark:placeholder:text-gray-500
+                    focus:outline-none focus:border-medium-green
+                    transition-colors duration-200"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-lg
+                  bg-medium-green hover:bg-deep-green
+                  text-white font-semibold text-sm
+                  transition-colors duration-200
+                  disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+          )}
 
         </div>
       </div>

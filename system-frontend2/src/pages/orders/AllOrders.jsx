@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import useAuthStore from '../../store/authStore'
 import { ordersApi } from '../../services/axiosInstance'
+import { springPageItems, springPageTotalElements, springPageTotalPages } from '../../utils/apiNormalize'
 
 /* ─── constants ─────────────────────────────────────── */
 const priorityPillStyles = {
@@ -65,9 +66,9 @@ export default function AllOrders() {
     placeholderData: (prev) => prev,
   })
 
-  const orders = data?.data ?? []
-  const total  = data?.pagination?.total ?? orders.length
-  const totalPages = Math.max(1, data?.pagination?.totalPages ?? 1)
+  const orders = springPageItems(data)
+  const total  = springPageTotalElements(data) || orders.length
+  const totalPages = Math.max(1, springPageTotalPages(data))
 
   const countByStatus = (s) => orders.filter((o) => o.status === s).length
   const activeValue   = orders
@@ -78,9 +79,10 @@ export default function AllOrders() {
   const filtered = useMemo(() => orders
     .filter((o) => {
       const q = search.toLowerCase()
+      const oid = String(o.orderId ?? '')
+      const cust = String(o.customerName ?? o.customerId ?? '')
       return (
-        ((o.customerName ?? o.customerId ?? '').toLowerCase().includes(q) ||
-          o.orderId.toLowerCase().includes(q)) &&
+        (cust.toLowerCase().includes(q) || oid.toLowerCase().includes(q)) &&
         (priority === 'All' || o.priority === priority)
       )
     })
@@ -367,14 +369,14 @@ export default function AllOrders() {
                       </div>
                     ) : colOrders.map((order) => (
                       <div
-                        key={order.orderId}
+                        key={String(order.orderId)}
                         role="button"
                         tabIndex={0}
-                        onClick={() => navigate(`/orders/${order.orderId}`)}
+                        onClick={() => navigate('/orders')}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
-                            navigate(`/orders/${order.orderId}`)
+                            navigate('/orders')
                           }
                         }}
                         className={`
@@ -393,7 +395,7 @@ export default function AllOrders() {
                         <div className="relative">
                           <div className="flex items-start justify-between gap-1 mb-1.5">
                             <span className="text-xs font-bold text-gray-800 dark:text-white group-hover/card:text-medium-green transition-colors leading-snug">
-                              {order.orderId}
+                              {String(order.orderId)}
                             </span>
                             {order.priority && (
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 shadow-sm ${priorityPillStyles[order.priority] || 'bg-gray-200 text-gray-600'}`}>
@@ -402,10 +404,10 @@ export default function AllOrders() {
                             )}
                           </div>
                           <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 leading-snug mb-1.5 truncate">
-                            {order.customerName ?? order.customerId ?? '—'}
+                            {order.customerName ?? String(order.customerId ?? '—')}
                           </p>
                           <p className="text-xs text-gray-400 dark:text-gray-500">
-                            {order.items?.length ?? order.itemCount ?? 0} items · GHS {(order.totalAmount ?? 0).toLocaleString()}
+                            {order.items?.length ?? order.itemCount ?? 0} items · GHS {Number(order.totalAmount ?? 0).toLocaleString()}
                           </p>
                           {order.createdAt && (
                             <p className="text-[10px] text-gray-300 dark:text-gray-600 mt-2">
