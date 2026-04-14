@@ -21,6 +21,9 @@ public class SupplierEntity {
     @Column(name = "supplier_id", updatable = false, nullable = false)
     private UUID supplierId;
 
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
     @Column(nullable = false)
     private String name;
 

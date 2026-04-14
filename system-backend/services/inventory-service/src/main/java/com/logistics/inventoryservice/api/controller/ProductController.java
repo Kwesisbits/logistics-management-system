@@ -2,14 +2,19 @@ package com.logistics.inventoryservice.api.controller;
 
 import com.logistics.inventoryservice.application.dto.request.CreateProductRequest;
 import com.logistics.inventoryservice.application.dto.request.UpdateProductRequest;
+import com.logistics.inventoryservice.application.dto.response.InventoryImportResult;
 import com.logistics.inventoryservice.application.dto.response.ProductResponse;
+import com.logistics.inventoryservice.application.service.InventoryImportService;
 import com.logistics.inventoryservice.application.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URI;
 import java.util.UUID;
@@ -20,6 +25,7 @@ import java.util.UUID;
 public class ProductController {
 
     private final ProductService productService;
+    private final InventoryImportService inventoryImportService;
 
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody CreateProductRequest request) {
@@ -54,5 +60,18 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable UUID productId) {
         productService.deleteProduct(productId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * CSV/XLSX columns: sku, name, category, unit_of_measure, unit_cost, reorder_threshold, quantity_on_hand, location_id
+     * Optional: description
+     */
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('COMPANY_ADMIN')")
+    public ResponseEntity<InventoryImportResult> importProducts(
+        @RequestPart("file") MultipartFile file,
+        @RequestParam(value = "format", defaultValue = "csv") String format
+    ) throws Exception {
+        return ResponseEntity.ok(inventoryImportService.importFile(file, format));
     }
 }

@@ -8,6 +8,7 @@ import com.logistics.procurementservice.application.dto.response.PurchaseOrderRe
 import com.logistics.procurementservice.infrastructure.messaging.OutboxEventPublisher;
 import com.logistics.procurementservice.infrastructure.persistence.entity.PurchaseOrderEntity;
 import com.logistics.procurementservice.infrastructure.persistence.entity.PurchaseOrderItemEntity;
+import com.logistics.common.security.LogisticsTenantContext;
 import com.logistics.procurementservice.infrastructure.persistence.repository.PurchaseOrderJpaRepository;
 import com.logistics.procurementservice.infrastructure.persistence.repository.SupplierJpaRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,11 +44,13 @@ public class PurchaseOrderService {
 
     @Transactional
     public PurchaseOrderResponse createPurchaseOrder(CreatePurchaseOrderRequest request) {
-        supplierRepository.findById(request.supplierId())
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        supplierRepository.findBySupplierIdAndCompanyId(request.supplierId(), cid)
             .filter(s -> s.isActive())
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Supplier not found or inactive"));
 
         PurchaseOrderEntity po = new PurchaseOrderEntity();
+        po.setCompanyId(cid);
         po.setSupplierId(request.supplierId());
         po.setWarehouseId(request.warehouseId());
         po.setCreatedBy(request.createdBy());
@@ -76,19 +79,25 @@ public class PurchaseOrderService {
 
     @Transactional(readOnly = true)
     public PurchaseOrderResponse getPurchaseOrder(UUID purchaseOrderId) {
-        return purchaseOrderRepository.findById(purchaseOrderId)
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        return purchaseOrderRepository.findByPurchaseOrderIdAndCompanyId(purchaseOrderId, cid)
             .map(PurchaseOrderResponse::from)
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Purchase order not found"));
     }
 
     @Transactional(readOnly = true)
-    public Page<PurchaseOrderResponse> listPurchaseOrders(Pageable pageable) {
-        return purchaseOrderRepository.findAll(pageable).map(PurchaseOrderResponse::from);
+    public Page<PurchaseOrderResponse> listPurchaseOrders(Pageable pageable, String status) {
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        if (status != null && !status.isBlank()) {
+            return purchaseOrderRepository.findAllByCompanyIdAndStatus(cid, status, pageable).map(PurchaseOrderResponse::from);
+        }
+        return purchaseOrderRepository.findAllByCompanyId(cid, pageable).map(PurchaseOrderResponse::from);
     }
 
     @Transactional
     public PurchaseOrderResponse submitPurchaseOrder(UUID purchaseOrderId) {
-        PurchaseOrderEntity po = purchaseOrderRepository.findById(purchaseOrderId)
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        PurchaseOrderEntity po = purchaseOrderRepository.findByPurchaseOrderIdAndCompanyId(purchaseOrderId, cid)
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Purchase order not found"));
 
         transitionTo(po, "SUBMITTED");

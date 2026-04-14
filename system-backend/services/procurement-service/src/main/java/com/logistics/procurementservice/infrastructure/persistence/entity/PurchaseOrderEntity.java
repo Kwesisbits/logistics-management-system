@@ -24,6 +24,9 @@ public class PurchaseOrderEntity {
     @Column(name = "purchase_order_id", updatable = false, nullable = false)
     private UUID purchaseOrderId;
 
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
     @Column(name = "supplier_id", nullable = false)
     private UUID supplierId;
 

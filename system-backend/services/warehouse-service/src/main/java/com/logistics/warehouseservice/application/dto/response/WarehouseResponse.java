@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public record WarehouseResponse(
     UUID warehouseId,
+    UUID companyId,
     String name,
     String street,
     String city,
@@ -21,6 +22,7 @@ public record WarehouseResponse(
     public static WarehouseResponse from(WarehouseEntity e) {
         return new WarehouseResponse(
             e.getWarehouseId(),
+            e.getCompanyId(),
             e.getName(),
             e.getStreet(),
             e.getCity(),

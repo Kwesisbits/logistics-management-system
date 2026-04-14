@@ -16,6 +16,11 @@
     <name>Order Management Service</name>
 
     <dependencies>
+        <dependency>
+            <groupId>com.logistics</groupId>
+            <artifactId>logistics-security-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -51,7 +56,6 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- Kafka -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>

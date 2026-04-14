@@ -4,9 +4,10 @@ import com.logistics.inventoryservice.api.exception.BusinessException;
 import com.logistics.inventoryservice.application.dto.request.CreateProductRequest;
 import com.logistics.inventoryservice.application.dto.request.UpdateProductRequest;
 import com.logistics.inventoryservice.application.dto.response.ProductResponse;
+import com.logistics.inventoryservice.infrastructure.messaging.OutboxEventPublisher;
 import com.logistics.inventoryservice.infrastructure.persistence.entity.ProductEntity;
 import com.logistics.inventoryservice.infrastructure.persistence.repository.ProductJpaRepository;
-import com.logistics.inventoryservice.infrastructure.messaging.OutboxEventPublisher;
+import com.logistics.inventoryservice.infrastructure.security.InventoryTenant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,11 +27,13 @@ public class ProductService {
 
     @Transactional
     public ProductResponse createProduct(CreateProductRequest request) {
-        if (productRepository.existsBySku(request.sku())) {
+        UUID companyId = InventoryTenant.currentCompanyId();
+        if (productRepository.existsByCompanyIdAndSku(companyId, request.sku())) {
             throw new BusinessException("CONFLICT", "A product with SKU " + request.sku() + " already exists");
         }
 
         ProductEntity entity = new ProductEntity();
+        entity.setCompanyId(companyId);
         entity.setSku(request.sku());
         entity.setName(request.name());
         entity.setDescription(request.description());
@@ -54,7 +57,8 @@ public class ProductService {
 
     @Transactional
     public ProductResponse updateProduct(UUID productId, UpdateProductRequest request) {
-        ProductEntity entity = productRepository.findById(productId)
+        UUID companyId = InventoryTenant.currentCompanyId();
+        ProductEntity entity = productRepository.findByProductIdAndCompanyId(productId, companyId)
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Product not found"));
 
         if (request.name() != null) entity.setName(request.name());
@@ -69,7 +73,8 @@ public class ProductService {
 
     @Transactional
     public void deleteProduct(UUID productId) {
-        ProductEntity entity = productRepository.findById(productId)
+        UUID companyId = InventoryTenant.currentCompanyId();
+        ProductEntity entity = productRepository.findByProductIdAndCompanyId(productId, companyId)
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Product not found"));
         productRepository.delete(entity);
         log.info("Product soft-deleted: productId={}", productId);
@@ -77,14 +82,16 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public ProductResponse getProduct(UUID productId) {
-        return productRepository.findById(productId)
+        UUID companyId = InventoryTenant.currentCompanyId();
+        return productRepository.findByProductIdAndCompanyId(productId, companyId)
             .map(ProductResponse::from)
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Product not found"));
     }
 
     @Transactional(readOnly = true)
     public Page<ProductResponse> listProducts(Pageable pageable) {
-        return productRepository.findAllByIsActiveTrue(pageable).map(ProductResponse::from);
+        UUID companyId = InventoryTenant.currentCompanyId();
+        return productRepository.findAllByCompanyIdAndIsActiveTrue(companyId, pageable).map(ProductResponse::from);
     }
 
     private String buildProductEvent(String type, ProductEntity p) {

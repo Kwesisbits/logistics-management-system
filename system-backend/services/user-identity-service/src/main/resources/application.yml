@@ -31,6 +31,14 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: true
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+
   data:
     redis:
       host: localhost
@@ -68,6 +76,10 @@ paseto:
   secret-key: ${PASETO_SECRET_KEY:logistics-local-secret-key-32chars!!}
   access-token-expiry-seconds: 3600
   refresh-token-expiry-seconds: 86400
+
+app:
+  kafka:
+    user-created-topic: identity.user.created
 
 resilience4j:
   circuitbreaker:

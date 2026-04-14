@@ -44,6 +44,17 @@ Stop-PortListener 8081
 Stop-PortListener 8084
 Start-Sleep -Seconds 2
 
+Write-Host ">>> mvn install logistics-security-common..."
+Push-Location $Backend
+try {
+    if ($env:JAVA_HOME) {
+        $jh = $env:JAVA_HOME -replace '"', '""'
+        cmd /c "set `"JAVA_HOME=$jh`"&& set `"PATH=%JAVA_HOME%\bin;%PATH%`"&& mvn -q install -pl logistics-security-common -DskipTests"
+    } else {
+        mvn -q install -pl logistics-security-common -DskipTests
+    }
+} finally { Pop-Location }
+
 function Start-SpringService {
     param([string] $ModulePath, [string] $LogName)
     $logFile = Join-Path $LogDir "$LogName.log"

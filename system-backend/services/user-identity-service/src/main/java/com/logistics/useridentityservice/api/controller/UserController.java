@@ -1,6 +1,7 @@
 package com.logistics.useridentityservice.api.controller;
 
 import com.logistics.useridentityservice.application.dto.request.CreateUserRequest;
+import com.logistics.useridentityservice.application.dto.request.UpdateUserRoleRequest;
 import com.logistics.useridentityservice.application.dto.response.UserResponse;
 import com.logistics.useridentityservice.application.service.UserManagementService;
 import jakarta.validation.Valid;
@@ -22,7 +23,7 @@ public class UserController {
     private final UserManagementService userManagementService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('COMPANY_ADMIN')")
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
         UserResponse response = userManagementService.createUser(request);
         return ResponseEntity
@@ -31,26 +32,36 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('COMPANY_ADMIN')")
     public ResponseEntity<Page<UserResponse>> listUsers(
         @RequestParam(defaultValue = "1") int page,
-        @RequestParam(defaultValue = "20") int limit
+        @RequestParam(defaultValue = "20") int limit,
+        @RequestParam(required = false) UUID companyId
     ) {
         return ResponseEntity.ok(
-            userManagementService.listUsers(PageRequest.of(page - 1, limit))
+            userManagementService.listUsers(PageRequest.of(page - 1, limit), companyId)
         );
     }
 
     @GetMapping("/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.userId")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> getUser(@PathVariable UUID userId) {
         return ResponseEntity.ok(userManagementService.getUserById(userId));
     }
 
     @PatchMapping("/{userId}/deactivate")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('COMPANY_ADMIN')")
     public ResponseEntity<Void> deactivateUser(@PathVariable UUID userId) {
         userManagementService.deactivateUser(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{userId}/role")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('COMPANY_ADMIN')")
+    public ResponseEntity<UserResponse> updateUserRole(
+        @PathVariable UUID userId,
+        @Valid @RequestBody UpdateUserRoleRequest request
+    ) {
+        return ResponseEntity.ok(userManagementService.updateUserRole(userId, request));
     }
 }

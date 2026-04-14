@@ -23,6 +23,8 @@ public class GlobalExceptionHandler {
             case "INVALID_CREDENTIALS",
                  "ACCOUNT_DEACTIVATED" -> 401;
             case "INVALID_STATE_TRANSITION" -> 400;
+            case "SERVICE_UNAVAILABLE" -> 503;
+            case "INTERNAL_ERROR" -> 500;
             default -> 400;
         };
         return ResponseEntity.status(status)

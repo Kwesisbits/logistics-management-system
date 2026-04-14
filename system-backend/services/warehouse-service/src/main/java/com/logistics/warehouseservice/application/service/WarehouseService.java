@@ -3,6 +3,7 @@ package com.logistics.warehouseservice.application.service;
 import com.logistics.warehouseservice.api.exception.BusinessException;
 import com.logistics.warehouseservice.application.dto.request.CreateWarehouseRequest;
 import com.logistics.warehouseservice.application.dto.response.WarehouseResponse;
+import com.logistics.common.security.LogisticsTenantContext;
 import com.logistics.warehouseservice.infrastructure.persistence.entity.WarehouseEntity;
 import com.logistics.warehouseservice.infrastructure.persistence.repository.WarehouseJpaRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class WarehouseService {
     @Transactional
     public WarehouseResponse createWarehouse(CreateWarehouseRequest request) {
         WarehouseEntity entity = new WarehouseEntity();
+        entity.setCompanyId(LogisticsTenantContext.getCompanyId());
         entity.setName(request.name());
         entity.setStreet(request.street());
         entity.setCity(request.city());
@@ -38,13 +40,15 @@ public class WarehouseService {
 
     @Transactional(readOnly = true)
     public WarehouseResponse getWarehouse(UUID id) {
-        return warehouseRepository.findById(id)
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        return warehouseRepository.findByWarehouseIdAndCompanyId(id, cid)
             .map(WarehouseResponse::from)
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Warehouse not found"));
     }
 
     @Transactional(readOnly = true)
     public Page<WarehouseResponse> listWarehouses(Pageable pageable) {
-        return warehouseRepository.findAllByIsActiveTrue(pageable).map(WarehouseResponse::from);
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        return warehouseRepository.findAllByCompanyIdAndIsActiveTrue(cid, pageable).map(WarehouseResponse::from);
     }
 }

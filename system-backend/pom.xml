@@ -12,6 +12,7 @@
     <name>Logistics Management System</name>
 
     <modules>
+        <module>logistics-security-common</module>
         <module>services/user-identity-service</module>
         <module>services/inventory-service</module>
         <module>services/warehouse-service</module>

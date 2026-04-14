@@ -1,5 +1,8 @@
 package com.logistics.useridentityservice.domain.model;
 
 public enum RoleName {
-    ADMIN, WAREHOUSE_STAFF, VIEWER
+    SUPER_ADMIN,
+    COMPANY_ADMIN,
+    WAREHOUSE_STAFF,
+    VIEWER
 }

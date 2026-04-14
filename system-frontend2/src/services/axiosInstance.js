@@ -37,6 +37,11 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
 
+    const companyId = useAuthStore.getState().effectiveCompanyId?.()
+    if (companyId) {
+      config.headers['X-Company-Id'] = companyId
+    }
+
     const method = (config.method || '').toLowerCase()
     if (['post', 'put', 'patch'].includes(method)) {
       config.headers['Idempotency-Key'] = crypto.randomUUID()
@@ -137,7 +142,12 @@ const createServiceApi = (baseURL) => {
   })
 
   api.interceptors.request.use(
-    (config) => axiosInstance.interceptors.request.handlers[0].fulfilled(config),
+    (config) => {
+      if (config.data instanceof FormData) {
+        delete config.headers['Content-Type']
+      }
+      return axiosInstance.interceptors.request.handlers[0].fulfilled(config)
+    },
     (err) => Promise.reject(err)
   )
   api.interceptors.response.use(

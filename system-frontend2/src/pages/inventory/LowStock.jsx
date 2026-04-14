@@ -366,7 +366,7 @@ function EmptyState() {
 // ─────────────────────────────────────────────
 export default function LowStock() {
   const user = useAuthStore((s) => s.user)
-  const isAdmin = user?.roleName === 'ADMIN'
+  const isAdmin = useAuthStore((s) => s.isAdmin())
   const staffWid = user?.roleName === 'WAREHOUSE_STAFF' ? String(user?.warehouseId ?? '') : ''
 
   const [warehouse, setWarehouse] = useState(staffWid || 'All')

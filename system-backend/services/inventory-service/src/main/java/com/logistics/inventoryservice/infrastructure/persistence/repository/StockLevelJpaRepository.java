@@ -2,8 +2,11 @@ package com.logistics.inventoryservice.infrastructure.persistence.repository;
 
 import com.logistics.inventoryservice.infrastructure.persistence.entity.StockLevelEntity;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,6 +25,9 @@ public interface StockLevelJpaRepository extends JpaRepository<StockLevelEntity,
     List<StockLevelEntity> findAllByProductId(UUID productId);
 
     @Query("SELECT s FROM StockLevelEntity s JOIN ProductEntity p ON s.productId = p.productId " +
-           "WHERE s.quantityAvailable <= p.reorderThreshold AND p.isActive = true")
-    List<StockLevelEntity> findAllBelowReorderThreshold();
+           "WHERE s.quantityAvailable <= p.reorderThreshold AND p.isActive = true AND p.companyId = :companyId")
+    List<StockLevelEntity> findAllBelowReorderThreshold(@Param("companyId") UUID companyId);
+
+    @Query("SELECT s FROM StockLevelEntity s JOIN ProductEntity p ON s.productId = p.productId WHERE p.companyId = :companyId")
+    Page<StockLevelEntity> findPageByCompanyId(@Param("companyId") UUID companyId, Pageable pageable);
 }

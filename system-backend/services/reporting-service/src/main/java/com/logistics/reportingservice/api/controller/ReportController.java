@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -86,9 +87,42 @@ public class ReportController {
         return movementAggregateJpaRepository.findAll(pageable).map(MovementAggregateResponse::from);
     }
 
+    @GetMapping("/inventory/product-outbound-summary")
+    public List<ProductOutboundAggregateDto> productOutboundSummary(
+        @RequestParam(defaultValue = "30") int days
+    ) {
+        int d = Math.max(1, Math.min(days, 365));
+        Instant since = Instant.now().minus(d, ChronoUnit.DAYS);
+        return movementAggregateJpaRepository.sumOutboundByProductSince(since).stream()
+            .map(r -> new ProductOutboundAggregateDto((UUID) r[0], ((Number) r[1]).longValue()))
+            .toList();
+    }
+
+    @GetMapping("/inventory/product/{productId}/sparkline")
+    public List<Integer> productSparkline(
+        @PathVariable UUID productId,
+        @RequestParam(defaultValue = "7") int days
+    ) {
+        int d = Math.max(1, Math.min(days, 90));
+        Instant since = Instant.now().minus(d, ChronoUnit.DAYS);
+        return movementAggregateJpaRepository
+            .findAllByProductIdAndPeriodStartGreaterThanEqualOrderByPeriodStartAsc(productId, since)
+            .stream()
+            .map(MovementAggregateEntity::getTotalOutbound)
+            .toList();
+    }
+
     @GetMapping("/movements/trends")
-    public List<MovementTrendDto> movementTrends(@RequestParam(required = false) UUID warehouseId) {
-        Pageable pageable = PageRequest.of(0, 90);
+    public List<MovementTrendDto> movementTrends(
+        @RequestParam(required = false) UUID warehouseId,
+        @RequestParam(defaultValue = "week") String period
+    ) {
+        int pageSize = switch (period) {
+            case "month" -> 30;
+            case "quarter" -> 90;
+            default -> 7;
+        };
+        Pageable pageable = PageRequest.of(0, pageSize);
         Page<MovementAggregateEntity> page =
             warehouseId != null
                 ? movementAggregateJpaRepository.findAllByWarehouseIdOrderByPeriodStartDesc(warehouseId, pageable)

@@ -9,7 +9,14 @@ import java.util.UUID;
 
 public interface ProductJpaRepository extends JpaRepository<ProductEntity, UUID> {
     Optional<ProductEntity> findBySku(String sku);
-    boolean existsBySku(String sku);
-    Page<ProductEntity> findAllByIsActiveTrue(Pageable pageable);
-    Page<ProductEntity> findAllByCategoryAndIsActiveTrue(String category, Pageable pageable);
+
+    Optional<ProductEntity> findByCompanyIdAndSku(UUID companyId, String sku);
+
+    boolean existsByCompanyIdAndSku(UUID companyId, String sku);
+
+    Page<ProductEntity> findAllByCompanyIdAndIsActiveTrue(UUID companyId, Pageable pageable);
+
+    Page<ProductEntity> findAllByCompanyIdAndCategoryAndIsActiveTrue(UUID companyId, String category, Pageable pageable);
+
+    Optional<ProductEntity> findByProductIdAndCompanyId(UUID productId, UUID companyId);
 }

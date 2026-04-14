@@ -9,7 +9,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "products")
+@Table(
+    name = "products",
+    uniqueConstraints = @UniqueConstraint(name = "uq_products_company_sku", columnNames = {"company_id", "sku"})
+)
 @Getter @Setter @NoArgsConstructor
 @SQLDelete(sql = "UPDATE products SET deleted_at = NOW() WHERE product_id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
@@ -20,7 +23,10 @@ public class ProductEntity {
     @Column(name = "product_id", updatable = false, nullable = false)
     private UUID productId;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
+    @Column(nullable = false)
     private String sku;
 
     @Column(nullable = false)

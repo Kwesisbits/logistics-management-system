@@ -4,6 +4,7 @@ import com.logistics.warehouseservice.api.exception.BusinessException;
 import com.logistics.warehouseservice.application.dto.request.CreateLocationRequest;
 import com.logistics.warehouseservice.application.dto.response.LocationResponse;
 import com.logistics.warehouseservice.infrastructure.persistence.entity.StorageLocationEntity;
+import com.logistics.common.security.LogisticsTenantContext;
 import com.logistics.warehouseservice.infrastructure.persistence.repository.StorageLocationJpaRepository;
 import com.logistics.warehouseservice.infrastructure.persistence.repository.WarehouseJpaRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class LocationService {
 
     @Transactional
     public LocationResponse addLocation(UUID warehouseId, CreateLocationRequest request) {
-        warehouseRepository.findById(warehouseId)
+        warehouseRepository.findByWarehouseIdAndCompanyId(warehouseId, LogisticsTenantContext.getCompanyId())
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Warehouse not found"));
         StorageLocationEntity entity = new StorageLocationEntity();
         entity.setWarehouseId(warehouseId);
@@ -42,6 +43,8 @@ public class LocationService {
 
     @Transactional(readOnly = true)
     public List<LocationResponse> getLocations(UUID warehouseId) {
+        warehouseRepository.findByWarehouseIdAndCompanyId(warehouseId, LogisticsTenantContext.getCompanyId())
+            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Warehouse not found"));
         return locationRepository.findAllByWarehouseIdAndIsActiveTrue(warehouseId).stream()
             .map(LocationResponse::from).toList();
     }
@@ -49,6 +52,8 @@ public class LocationService {
     @Transactional(readOnly = true)
     public LocationResponse getLocation(UUID locationId) {
         StorageLocationEntity entity = locationRepository.findById(locationId)
+            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Location not found"));
+        warehouseRepository.findByWarehouseIdAndCompanyId(entity.getWarehouseId(), LogisticsTenantContext.getCompanyId())
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Location not found"));
         return LocationResponse.from(entity);
     }

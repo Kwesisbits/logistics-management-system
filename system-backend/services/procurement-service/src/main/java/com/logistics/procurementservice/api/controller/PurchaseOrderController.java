@@ -33,9 +33,10 @@ public class PurchaseOrderController {
     @GetMapping
     public ResponseEntity<Page<PurchaseOrderResponse>> listPurchaseOrders(
         @RequestParam(defaultValue = "1") int page,
-        @RequestParam(defaultValue = "20") int limit
+        @RequestParam(defaultValue = "20") int limit,
+        @RequestParam(required = false) String status
     ) {
-        return ResponseEntity.ok(purchaseOrderService.listPurchaseOrders(PageRequest.of(page - 1, limit)));
+        return ResponseEntity.ok(purchaseOrderService.listPurchaseOrders(PageRequest.of(page - 1, limit), status));
     }
 
     @GetMapping("/{purchaseOrderId}")

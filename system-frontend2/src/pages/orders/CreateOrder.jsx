@@ -17,7 +17,7 @@ const PRIORITY_VALUES = ['STANDARD', 'HIGH', 'URGENT']
 export default function CreateOrder() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
-  const isAdmin  = user?.roleName === 'ADMIN'
+  const isAdmin  = useAuthStore((s) => s.isAdmin())
   const isStaff  = user?.roleName === 'WAREHOUSE_STAFF'
   const queryClient = useQueryClient()
 

@@ -12,6 +12,7 @@ public record LoginResponse(
         UUID userId,
         String email,
         String role,
-        UUID warehouseId
+        UUID warehouseId,
+        UUID companyId
     ) {}
 }

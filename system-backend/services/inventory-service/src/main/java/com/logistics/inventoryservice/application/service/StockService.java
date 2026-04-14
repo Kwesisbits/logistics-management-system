@@ -1,12 +1,14 @@
 package com.logistics.inventoryservice.application.service;
 
 import com.logistics.inventoryservice.api.exception.BusinessException;
+import com.logistics.inventoryservice.application.dto.request.AdjustStockRequest;
 import com.logistics.inventoryservice.application.dto.request.ReserveStockRequest;
 import com.logistics.inventoryservice.application.dto.response.ReservationResponse;
 import com.logistics.inventoryservice.application.dto.response.StockLevelResponse;
+import com.logistics.inventoryservice.infrastructure.messaging.OutboxEventPublisher;
 import com.logistics.inventoryservice.infrastructure.persistence.entity.*;
 import com.logistics.inventoryservice.infrastructure.persistence.repository.*;
-import com.logistics.inventoryservice.infrastructure.messaging.OutboxEventPublisher;
+import com.logistics.inventoryservice.infrastructure.security.InventoryTenant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,6 +31,16 @@ public class StockService {
     private final ProductJpaRepository productRepository;
     private final OutboxEventPublisher outboxPublisher;
 
+    private UUID companyId() {
+        return InventoryTenant.currentCompanyId();
+    }
+
+    private void assertProductInCompany(UUID productId) {
+        productRepository.findByProductIdAndCompanyId(productId, companyId())
+            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Product not found"));
+
+    }
+
     @Transactional
     public ReservationResponse reserveStock(ReserveStockRequest request) {
         if (reservationRepository.existsByOrderId(request.orderId())) {
@@ -41,6 +53,8 @@ public class StockService {
         List<StockReservationItemEntity> items = new ArrayList<>();
 
         for (ReserveStockRequest.ReservationItem item : request.items()) {
+            assertProductInCompany(item.productId());
+
             StockLevelEntity level = stockLevelRepository
                 .findByProductIdAndLocationIdForUpdate(item.productId(), item.locationId())
                 .orElseThrow(() -> new BusinessException("NOT_FOUND",
@@ -97,6 +111,7 @@ public class StockService {
         }
 
         for (StockReservationItemEntity item : reservation.getItems()) {
+            assertProductInCompany(item.getProductId());
             stockLevelRepository.findByProductIdAndLocationIdForUpdate(item.getProductId(), item.getLocationId())
                 .ifPresent(level -> {
                     level.setQuantityReserved(
@@ -120,11 +135,48 @@ public class StockService {
         log.info("Stock released: orderId={}, reason={}", orderId, reason);
     }
 
+    @Transactional
+    public StockLevelResponse adjustStock(AdjustStockRequest request) {
+        assertProductInCompany(request.productId());
+
+        StockLevelEntity level = stockLevelRepository
+            .findByProductIdAndLocationIdForUpdate(request.productId(), request.locationId())
+            .orElseThrow(() -> new BusinessException("NOT_FOUND",
+                "No stock level for product " + request.productId() + " at location " + request.locationId()));
+
+        int newOnHand = level.getQuantityOnHand() + request.quantityDelta();
+        if (newOnHand < 0) {
+            throw new BusinessException("VALIDATION_ERROR", "Adjustment would make on-hand quantity negative");
+        }
+        if (newOnHand < level.getQuantityReserved()) {
+            throw new BusinessException("VALIDATION_ERROR", "On-hand cannot be below reserved quantity");
+        }
+        level.setQuantityOnHand(newOnHand);
+        stockLevelRepository.saveAndFlush(level);
+
+        outboxPublisher.publish(
+            "inventory.stock.adjusted",
+            request.productId(),
+            String.format(
+                "{\"eventType\":\"inventory.stock.adjusted\",\"productId\":\"%s\",\"locationId\":\"%s\",\"delta\":%d,\"reason\":\"%s\"}",
+                request.productId(), request.locationId(), request.quantityDelta(),
+                request.reason().replace("\"", "\\\"")
+            )
+        );
+
+        log.info("Stock adjusted: productId={}, locationId={}, delta={}, reason={}",
+            request.productId(), request.locationId(), request.quantityDelta(), request.reason());
+        return stockLevelRepository.findById(level.getStockLevelId())
+            .map(StockLevelResponse::from)
+            .orElseThrow();
+    }
+
     private void checkLowStock(List<ReserveStockRequest.ReservationItem> items) {
+        UUID cid = companyId();
         for (ReserveStockRequest.ReservationItem item : items) {
             stockLevelRepository.findByProductIdAndLocationId(item.productId(), item.locationId())
                 .ifPresent(level -> {
-                    productRepository.findById(level.getProductId()).ifPresent(product -> {
+                    productRepository.findByProductIdAndCompanyId(level.getProductId(), cid).ifPresent(product -> {
                         if (level.getQuantityAvailable() <= product.getReorderThreshold()) {
                             outboxPublisher.publish(
                                 "inventory.stock.low_stock_alert",
@@ -151,12 +203,13 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public Page<StockLevelResponse> listStockLevels(int page, int limit) {
-        return stockLevelRepository.findAll(PageRequest.of(page - 1, limit))
+        return stockLevelRepository.findPageByCompanyId(companyId(), PageRequest.of(page - 1, limit))
             .map(StockLevelResponse::from);
     }
 
     @Transactional(readOnly = true)
     public List<StockLevelResponse> listStockByProduct(UUID productId) {
+        assertProductInCompany(productId);
         return stockLevelRepository.findAllByProductId(productId).stream()
             .map(StockLevelResponse::from)
             .toList();
@@ -164,7 +217,7 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public List<StockLevelResponse> listLowStockLevels() {
-        return stockLevelRepository.findAllBelowReorderThreshold().stream()
+        return stockLevelRepository.findAllBelowReorderThreshold(companyId()).stream()
             .map(StockLevelResponse::from)
             .toList();
     }

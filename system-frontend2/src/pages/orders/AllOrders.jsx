@@ -17,6 +17,8 @@ const priorityPillStyles = {
   LOW:    'bg-green-500 text-white',
 }
 
+const ORDER_STATUS_TABS = ['All', 'DRAFT', 'PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']
+
 const LIFECYCLE_STEPS = [
   { status: 'DRAFT',      label: 'Draft',      Icon: FileText,    ringHover: 'hover:ring-gray-300/80 dark:hover:ring-gray-500', bar: 'from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-500', iconBg: 'bg-gray-100 dark:bg-gray-700', iconColor: 'text-gray-500 dark:text-gray-400', hoverBorder: 'hover:border-gray-300 dark:hover:border-gray-500' },
   { status: 'PENDING',    label: 'Pending',    Icon: Clock,       ringHover: 'hover:ring-amber-400/70', bar: 'from-amber-300 to-amber-500', iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-500', hoverBorder: 'hover:border-amber-300 dark:hover:border-amber-600' },
@@ -37,10 +39,11 @@ const KPI_CARDS = (total, countFn, activeValue) => [
 export default function AllOrders() {
   const navigate = useNavigate()
   const user     = useAuthStore((s) => s.user)
-  const canEdit  = ['ADMIN', 'WAREHOUSE_STAFF'].includes(user?.roleName)
+  const canEdit  = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'WAREHOUSE_STAFF'].includes(user?.roleName)
 
   const [search,   setSearch]   = useState('')
   const [priority, setPriority] = useState('All')
+  const [statusTab, setStatusTab] = useState('All')
   const [page,     setPage]     = useState(1)
   const [pulseStep, setPulseStep] = useState(null)
   const columnRefs = useRef({})
@@ -48,12 +51,13 @@ export default function AllOrders() {
   const warehouseId = user?.roleName === 'WAREHOUSE_STAFF' ? user?.warehouseId : undefined
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['orders', { priority, page, warehouseId }],
+    queryKey: ['orders', { priority, page, warehouseId, statusTab }],
     queryFn: async () => {
       const response = await ordersApi.get('/', {
         params: {
           priority: priority !== 'All' ? priority : undefined,
           warehouseId,
+          status: statusTab === 'All' ? undefined : statusTab,
           page,
           limit: 20,
           sortBy: 'createdAt',
@@ -65,6 +69,26 @@ export default function AllOrders() {
     staleTime: 0,
     placeholderData: (prev) => prev,
   })
+
+  const { data: ordersForCounts = [] } = useQuery({
+    queryKey: ['orders', 'status-counts', warehouseId],
+    queryFn: async () => {
+      const response = await ordersApi.get('/', {
+        params: { warehouseId, page: 1, limit: 500, sortBy: 'createdAt', order: 'desc' },
+      })
+      return springPageItems(response.data)
+    },
+    staleTime: 60_000,
+  })
+
+  const statusCounts = useMemo(() => {
+    const m = {}
+    ORDER_STATUS_TABS.forEach((s) => {
+      if (s === 'All') return
+      m[s] = ordersForCounts.filter((o) => o.status === s).length
+    })
+    return m
+  }, [ordersForCounts])
 
   const orders = springPageItems(data)
   const total  = springPageTotalElements(data) || orders.length
@@ -101,7 +125,7 @@ export default function AllOrders() {
       {/* ── Page header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-dark-base dark:text-white">AllOrders</h2>
+          <h2 className="text-2xl font-bold text-dark-base dark:text-white">Orders</h2>
           <p className="text-sm text-gray-400 mt-0.5">Track orders through their complete process from draft to delivery</p>
         </div>
         <div className="flex items-center gap-2">
@@ -145,6 +169,27 @@ export default function AllOrders() {
               <Icon size={18} className={iconColor} />
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* ── Status tabs ── */}
+      <div className="flex flex-wrap gap-2">
+        {ORDER_STATUS_TABS.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => { setStatusTab(s); setPage(1) }}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              statusTab === s
+                ? 'bg-brand-blue text-white border-brand-blue'
+                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-brand-blue/40'
+            }`}
+          >
+            {s === 'All' ? 'All' : s.replaceAll('_', ' ')}
+            {s !== 'All' && (
+              <span className="ml-1.5 opacity-80 tabular-nums">({statusCounts[s] ?? 0})</span>
+            )}
+          </button>
         ))}
       </div>
 
@@ -372,11 +417,11 @@ export default function AllOrders() {
                         key={String(order.orderId)}
                         role="button"
                         tabIndex={0}
-                        onClick={() => navigate('/orders')}
+                        onClick={() => navigate(`/orders/${order.orderId}`)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
-                            navigate('/orders')
+                            navigate(`/orders/${order.orderId}`)
                           }
                         }}
                         className={`

@@ -34,6 +34,9 @@ public class OrderEntity {
     @Column(name = "warehouse_id", nullable = false)
     private UUID warehouseId;
 
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
     @Column(nullable = false)
     private String status = "DRAFT";
 

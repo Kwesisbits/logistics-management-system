@@ -9,5 +9,6 @@ public record TokenClaims(
     UUID roleId,
     String roleName,
     List<String> permissions,
-    UUID warehouseId
+    UUID warehouseId,
+    UUID companyId
 ) {}

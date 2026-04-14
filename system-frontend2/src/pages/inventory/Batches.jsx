@@ -47,7 +47,7 @@ const ALL_STATUSES = ['All', 'ACTIVE', 'PARTIALLY_USED', 'CONSUMED', 'RECALLED',
 
 export default function Batches() {
   const user    = useAuthStore((s) => s.user)
-  const canEdit = ['ADMIN', 'WAREHOUSE_STAFF'].includes(user?.roleName)
+  const canEdit = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'WAREHOUSE_STAFF'].includes(user?.roleName)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('All')
   const [page, setPage]     = useState(1)

@@ -16,6 +16,21 @@
     <name>Inventory Service</name>
 
     <dependencies>
+        <dependency>
+            <groupId>com.logistics</groupId>
+            <artifactId>logistics-security-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -47,7 +62,6 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
-
         <!-- Kafka -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>

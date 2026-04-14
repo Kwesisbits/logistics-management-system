@@ -51,6 +51,7 @@ public class PasetoTokenService {
             .claim("roleName",    claims.roleName())
             .claim("permissions", claims.permissions())
             .claim("warehouseId", claims.warehouseId() != null ? claims.warehouseId().toString() : null)
+            .claim("companyId", claims.companyId() != null ? claims.companyId().toString() : null)
             .compact();
     }
 

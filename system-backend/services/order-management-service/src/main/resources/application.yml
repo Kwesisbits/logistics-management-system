@@ -65,3 +65,6 @@ resilience4j:
         slidingWindowSize: 10
         failureRateThreshold: 50
         waitDurationInOpenState: 30s
+services:
+  inventory:
+    base-url: http://localhost:8082

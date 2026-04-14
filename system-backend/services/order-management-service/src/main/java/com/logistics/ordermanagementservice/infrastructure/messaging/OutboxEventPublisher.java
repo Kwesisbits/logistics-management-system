@@ -19,7 +19,8 @@ public class OutboxEventPublisher {
     private static final Map<String, String> TOPIC_MAP = Map.of(
         "order.created", "order.created",
         "order.status.changed", "order.status.changed",
-        "order.cancelled", "order.cancelled"
+        "order.cancelled", "order.cancelled",
+        "order.return.processed", "order.return.processed"
     );
 
     public void publish(String eventType, UUID correlationId, String payload) {

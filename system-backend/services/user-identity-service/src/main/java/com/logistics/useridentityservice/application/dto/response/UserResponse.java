@@ -11,6 +11,8 @@ public record UserResponse(
     String lastName,
     String role,
     UUID warehouseId,
+    UUID companyId,
+    String companyName,
     boolean active,
     Instant createdAt
 ) {
@@ -22,6 +24,8 @@ public record UserResponse(
             entity.getLastName(),
             entity.getRole().getName(),
             entity.getWarehouseId(),
+            entity.getCompany() != null ? entity.getCompany().getCompanyId() : null,
+            entity.getCompany() != null ? entity.getCompany().getName() : null,
             entity.isActive(),
             entity.getCreatedAt()
         );

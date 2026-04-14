@@ -32,6 +32,13 @@ public class UserEntity {
     private String lastName;
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "company_id")
+    private CompanyEntity company;
+
+    @Column(name = "country", length = 100)
+    private String country;
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", nullable = false)
     private RoleEntity role;
 

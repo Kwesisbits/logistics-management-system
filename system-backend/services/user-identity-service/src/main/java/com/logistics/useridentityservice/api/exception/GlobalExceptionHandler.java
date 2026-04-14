@@ -20,6 +20,7 @@ public class GlobalExceptionHandler {
             case "NOT_FOUND"             -> 404;
             case "CONFLICT"              -> 409;
             case "VALIDATION_ERROR"      -> 422;
+            case "INTERNAL_ERROR"        -> 500;
             case "INVALID_CREDENTIALS",
                  "ACCOUNT_DEACTIVATED"  -> 401;
             default                      -> 400;

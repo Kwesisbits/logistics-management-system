@@ -4,6 +4,23 @@ import { Loader2, MapPin } from 'lucide-react'
 import { warehouseApi } from '../../services/axiosInstance'
 import { springPageItems } from '../../utils/apiNormalize'
 
+function OccupancyBar({ current, max }) {
+  const cap = Math.max(Number(max) || 0, 1)
+  const pct = Math.min(100, Math.round(((Number(current) || 0) / cap) * 100))
+  const tone =
+    pct >= 95 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : pct >= 40 ? 'bg-medium-green' : 'bg-emerald-400'
+  return (
+    <div className="flex flex-col items-end gap-1 min-w-[120px]">
+      <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+        <div className={`h-full rounded-full transition-all ${tone}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs tabular-nums text-gray-600 dark:text-gray-300">
+        {current} / {max} ({pct}%)
+      </span>
+    </div>
+  )
+}
+
 export default function Locations() {
   const { data: warehouses } = useQuery({
     queryKey: ['warehouses', 'locations'],
@@ -81,7 +98,7 @@ export default function Locations() {
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Code</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Zone / Aisle</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">Occupancy</th>
+                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase min-w-[140px]">Occupancy</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
@@ -104,8 +121,8 @@ export default function Locations() {
                         {[loc.zone, loc.aisle, loc.shelf, loc.bin].filter(Boolean).join(' · ') || '—'}
                       </td>
                       <td className="px-4 py-3 text-gray-600">{loc.locationType ?? '—'}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                        {loc.currentOccupancy ?? 0} / {loc.maxCapacity ?? 0}
+                      <td className="px-4 py-3 text-right">
+                        <OccupancyBar current={loc.currentOccupancy ?? 0} max={loc.maxCapacity ?? 0} />
                       </td>
                     </tr>
                   ))

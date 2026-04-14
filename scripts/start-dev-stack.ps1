@@ -64,6 +64,17 @@ if (-not $FrontendOnly) {
     Write-Host ">>> Waiting for Kafka/Redis..."
     Start-Sleep -Seconds 8
 
+    Write-Host ">>> mvn install logistics-security-common (shared library for services)..."
+    Push-Location $Backend
+    try {
+        if ($env:JAVA_HOME) {
+            $jh = $env:JAVA_HOME -replace '"', '""'
+            cmd /c "set `"JAVA_HOME=$jh`"&& set `"PATH=%JAVA_HOME%\bin;%PATH%`"&& mvn -q install -pl logistics-security-common -DskipTests"
+        } else {
+            mvn -q install -pl logistics-security-common -DskipTests
+        }
+    } finally { Pop-Location }
+
     Write-Host ">>> Starting Spring Boot services..."
     Start-SpringService "services/user-identity-service" "user-identity-service"
     Start-Sleep -Seconds 3

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useQuery, useQueries } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation } from '@tanstack/react-query'
 import {
   Search, Loader2, X, TrendingUp, TrendingDown, Package,
   AlertTriangle, Activity, Download,
@@ -277,7 +277,32 @@ function LineChartView({ items }) {
 // ─────────────────────────────────────────────
 // DETAIL DRAWER
 // ─────────────────────────────────────────────
-function DetailDrawer({ item, onClose }) {
+function DetailDrawer({ item, onClose, canAdjust, onAdjusted }) {
+  const [delta, setDelta] = useState('')
+  const [reason, setReason] = useState('Manual adjustment')
+  const [adjErr, setAdjErr] = useState('')
+
+  const adjustMut = useMutation({
+    mutationFn: async () => {
+      const d = parseInt(delta, 10)
+      if (!Number.isFinite(d) || d === 0) {
+        throw new Error('Enter a non-zero whole number for quantity change')
+      }
+      await inventoryApi.post('/stock/adjust', {
+        productId: item.productId,
+        locationId: item.locationId,
+        quantityDelta: d,
+        reason: reason.trim() || 'Manual adjustment',
+      })
+    },
+    onSuccess: () => {
+      onAdjusted?.()
+    },
+    onError: (e) => {
+      setAdjErr(e?.message || 'Adjustment failed')
+    },
+  })
+
   if (!item) return null
   const st  = getStatus(item)
   const sm  = STATUS_META[st]
@@ -358,6 +383,43 @@ function DetailDrawer({ item, onClose }) {
             })}
           </div>
         </div>
+
+        {canAdjust && (
+          <div className="border-t border-gray-100 dark:border-gray-800 pt-4 space-y-3">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Adjust stock</p>
+            <p className="text-xs text-gray-400">Positive adds on-hand; negative removes (cycle count, damage, correction).</p>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs text-gray-500 col-span-2">
+                Quantity Δ
+                <input
+                  type="number"
+                  value={delta}
+                  onChange={(e) => { setDelta(e.target.value); setAdjErr('') }}
+                  placeholder="e.g. 10 or -5"
+                  className="mt-1 w-full px-3 py-2 text-sm border border-gray-200 rounded-lg dark:bg-gray-900 dark:border-gray-700"
+                />
+              </label>
+              <label className="text-xs text-gray-500 col-span-2">
+                Reason
+                <input
+                  type="text"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 text-sm border border-gray-200 rounded-lg dark:bg-gray-900 dark:border-gray-700"
+                />
+              </label>
+            </div>
+            {adjErr && <p className="text-xs text-red-600">{adjErr}</p>}
+            <button
+              type="button"
+              disabled={adjustMut.isPending}
+              onClick={() => adjustMut.mutate()}
+              className="w-full py-2 rounded-lg bg-medium-green text-white text-sm font-semibold hover:opacity-95 disabled:opacity-50"
+            >
+              {adjustMut.isPending ? 'Applying…' : 'Apply adjustment'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -368,8 +430,12 @@ function DetailDrawer({ item, onClose }) {
 // ─────────────────────────────────────────────
 export default function StockLevels() {
   const user      = useAuthStore(s => s.user)
-  const isAdmin   = user?.roleName === 'ADMIN'
+  const isAdmin   = useAuthStore((s) => s.isAdmin())
   const staffWid  = user?.roleName === 'WAREHOUSE_STAFF' ? String(user?.warehouseId ?? '') : ''
+  const [detailItem, setDetailItem] = useState(null)
+  const canAdjustStock =
+    isAdmin ||
+    (user?.roleName === 'WAREHOUSE_STAFF' && staffWid && detailItem && String(detailItem.warehouseId) === staffWid)
 
   const [search,     setSearch]     = useState('')
   const [warehouse,  setWarehouse]  = useState('All')
@@ -377,7 +443,6 @@ export default function StockLevels() {
   const [page,       setPage]       = useState(1)
   const [sortKey,    setSortKey]    = useState('name')
   const [sortDir,    setSortDir]    = useState('asc')
-  const [detailItem, setDetailItem] = useState(null)
   const [dateRange,  setDateRange]  = useState('7d')
 
   const { data: warehousesData } = useQuery({
@@ -701,7 +766,17 @@ export default function StockLevels() {
       )}
 
       {/* ── Detail drawer ── */}
-      {detailItem && <DetailDrawer item={detailItem} onClose={() => setDetailItem(null)} />}
+      {detailItem && (
+        <DetailDrawer
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          canAdjust={canAdjustStock}
+          onAdjusted={() => {
+            refetch()
+            setDetailItem(null)
+          }}
+        />
+      )}
 
     </div>
   )

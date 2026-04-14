@@ -18,9 +18,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handle(BusinessException ex) {
         int status = switch (ex.getCode()) {
             case "NOT_FOUND" -> 404;
-            case "CONFLICT", "INSUFFICIENT_STOCK", "INVALID_STATE_TRANSITION" -> 409;
+            case "CONFLICT", "INSUFFICIENT_STOCK", "INVALID_STATE_TRANSITION", "INVALID_STATE" -> 409;
             case "VALIDATION_ERROR" -> 422;
             case "INVALID_CREDENTIALS", "ACCOUNT_DEACTIVATED" -> 401;
+            case "INTERNAL_ERROR" -> 500;
             default -> 400;
         };
         return ResponseEntity.status(status)

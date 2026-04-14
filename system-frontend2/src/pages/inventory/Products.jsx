@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { Search, Plus, Edit, Trash2, ArrowUpDown, Package, Loader2, X } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, ArrowUpDown, Package, Loader2, X, Upload } from 'lucide-react'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
@@ -50,9 +50,7 @@ function formatMoney(v) {
 
 export default function Products() {
 
-  const user    = useAuthStore((s) => s.user)
-
-  const isAdmin = user?.roleName === 'ADMIN'
+  const isAdmin = useAuthStore((s) => s.isAdmin())
 
 
 
@@ -73,6 +71,14 @@ export default function Products() {
   const [editTarget, setEditTarget]     = useState(null)
 
   const [formError, setFormError]       = useState('')
+
+  const [importFile, setImportFile]     = useState(null)
+
+  const [importFormat, setImportFormat] = useState('csv')
+
+  const [importMessage, setImportMessage] = useState('')
+
+  const [importError, setImportError]   = useState('')
 
   const [createForm, setCreateForm]     = useState(emptyCreateForm)
 
@@ -195,6 +201,56 @@ export default function Products() {
       const msg = err?.apiError?.message ?? err?.response?.data?.message ?? 'Could not update product'
 
       setFormError(msg)
+
+    },
+
+  })
+
+
+
+  const importProducts = useMutation({
+
+    mutationFn: async ({ file, format }) => {
+
+      const formData = new FormData()
+
+      formData.append('file', file)
+
+      const r = await inventoryApi.post(`/products/import`, formData, { params: { format } })
+
+      return r.data
+
+    },
+
+    onSuccess: (result) => {
+
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+
+      const n = result?.rowsProcessed
+
+      const pu = result?.productsUpserted
+
+      const su = result?.stockLevelsUpdated
+
+      setImportMessage(
+
+        `Import completed: ${n ?? 0} rows, ${pu ?? 0} products upserted, ${su ?? 0} stock rows updated.`
+
+      )
+
+      setImportError('')
+
+      setImportFile(null)
+
+    },
+
+    onError: (err) => {
+
+      const msg = err?.apiError?.message ?? err?.response?.data?.message ?? 'Import failed'
+
+      setImportError(msg)
+
+      setImportMessage('')
 
     },
 
@@ -429,6 +485,96 @@ export default function Products() {
         )}
 
       </div>
+
+
+
+      {isAdmin && (
+
+        <div className="app-card p-4 space-y-3">
+
+          <div className="flex items-center gap-2 text-sm font-semibold text-dark-base dark:text-white">
+
+            <Upload size={16} className="text-medium-green" />
+
+            Import products (CSV or XLSX)
+
+          </div>
+
+          <p className="text-xs text-gray-500">
+
+            Headers: sku, name, category, unit_of_measure, unit_cost, reorder_threshold, quantity_on_hand, location_id (optional: description).
+
+            Uses your selected company (X-Company-Id).
+
+          </p>
+
+          <div className="flex flex-wrap items-end gap-3">
+
+            <div>
+
+              <label className="text-xs text-gray-500 block mb-1">File</label>
+
+              <input
+
+                type="file"
+
+                accept=".csv,.xlsx,.xls"
+
+                onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+
+                className="text-sm"
+
+              />
+
+            </div>
+
+            <div>
+
+              <label className="text-xs text-gray-500 block mb-1">Format</label>
+
+              <select
+
+                value={importFormat}
+
+                onChange={(e) => setImportFormat(e.target.value)}
+
+                className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900"
+
+              >
+
+                <option value="csv">csv</option>
+
+                <option value="xlsx">xlsx</option>
+
+              </select>
+
+            </div>
+
+            <button
+
+              type="button"
+
+              disabled={!importFile || importProducts.isPending}
+
+              onClick={() => importFile && importProducts.mutate({ file: importFile, format: importFormat })}
+
+              className="px-4 py-2 rounded-lg bg-slate-800 dark:bg-slate-600 text-white text-sm font-semibold disabled:opacity-50"
+
+            >
+
+              {importProducts.isPending ? 'Importing…' : 'Run import'}
+
+            </button>
+
+          </div>
+
+          {importMessage && <p className="text-sm text-emerald-600">{importMessage}</p>}
+
+          {importError && <p className="text-sm text-red-600">{importError}</p>}
+
+        </div>
+
+      )}
 
 
 

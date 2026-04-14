@@ -3,6 +3,7 @@ package com.logistics.procurementservice.application.service;
 import com.logistics.procurementservice.api.exception.BusinessException;
 import com.logistics.procurementservice.application.dto.request.CreateSupplierRequest;
 import com.logistics.procurementservice.application.dto.response.SupplierResponse;
+import com.logistics.common.security.LogisticsTenantContext;
 import com.logistics.procurementservice.infrastructure.persistence.entity.SupplierEntity;
 import com.logistics.procurementservice.infrastructure.persistence.repository.SupplierJpaRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class SupplierService {
     @Transactional
     public SupplierResponse createSupplier(CreateSupplierRequest request) {
         SupplierEntity entity = new SupplierEntity();
+        entity.setCompanyId(LogisticsTenantContext.getCompanyId());
         entity.setName(request.name());
         entity.setContactEmail(request.contactEmail());
         entity.setContactPhone(request.contactPhone());
@@ -42,13 +44,15 @@ public class SupplierService {
 
     @Transactional(readOnly = true)
     public SupplierResponse getSupplier(UUID supplierId) {
-        return supplierRepository.findById(supplierId)
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        return supplierRepository.findBySupplierIdAndCompanyId(supplierId, cid)
             .map(SupplierResponse::from)
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Supplier not found"));
     }
 
     @Transactional(readOnly = true)
     public Page<SupplierResponse> listSuppliers(Pageable pageable) {
-        return supplierRepository.findAllByIsActiveTrue(pageable).map(SupplierResponse::from);
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        return supplierRepository.findAllByCompanyIdAndIsActiveTrue(cid, pageable).map(SupplierResponse::from);
     }
 }

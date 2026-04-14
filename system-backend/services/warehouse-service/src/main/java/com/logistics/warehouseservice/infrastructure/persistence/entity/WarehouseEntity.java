@@ -20,6 +20,9 @@ public class WarehouseEntity {
     @Column(name = "warehouse_id", updatable = false, nullable = false)
     private UUID warehouseId;
 
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
     @Column(nullable = false)
     private String name;
 

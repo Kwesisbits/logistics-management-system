@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { format } from 'date-fns'
 import {
   ShoppingCart, AlertTriangle, ClipboardList,
   Clock, ArrowRight, Plus, Box, Activity,
-  ArrowUpRight, Package,
+  ArrowUpRight, Package, PackageCheck, Truck, TrendingUp,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
+import StatusBadge from '../components/ui/StatusBadge'
+import { useLowStockCountQuery, usePendingPipelineOrdersCountQuery } from '../hooks/useNavBadges'
 import { inventoryApi, ordersApi, procurementApi, warehouseApi } from '../services/axiosInstance'
 import { springPageItems, springPageTotalElements } from '../utils/apiNormalize'
 import {
@@ -17,24 +20,6 @@ import {
   lastSevenDaysOrderTrend,
 } from '../utils/dashboardMetrics'
 import { buildProductLookup } from '../utils/enrichInventory'
-
-const statusStyles = {
-  PENDING:    'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-  PROCESSING: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  SHIPPED:    'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-  DELIVERED:  'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-  CANCELLED:  'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-  DRAFT:      'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-  FAILED:     'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',
-}
-function StatusBadge({ status }) {
-  const style = statusStyles[status] || 'bg-gray-100 text-gray-500'
-  return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${style}`}>
-      {status}
-    </span>
-  )
-}
 
 function formatGHS(n) {
   const v = Number(n ?? 0)
@@ -48,6 +33,19 @@ function formatGHSCompact(n) {
   if (v >= 1_000_000) return `GHS ${(v / 1_000_000).toFixed(2)}M`
   if (v >= 10_000) return `GHS ${(v / 1_000).toFixed(1)}K`
   return formatGHS(v)
+}
+
+function reorderPoHref(row) {
+  const pid = row.productId
+  const sid = row.preferredSupplierId
+  const qty = row.recommendedQty ?? row.suggestedOrderQuantity
+  if (sid && pid && qty != null && qty !== '') {
+    return `/procurement/purchase-orders/new?productId=${encodeURIComponent(pid)}&supplierId=${encodeURIComponent(sid)}&quantity=${encodeURIComponent(String(qty))}`
+  }
+  if (sid && pid) {
+    return `/procurement/purchase-orders/new?productId=${encodeURIComponent(pid)}&supplierId=${encodeURIComponent(sid)}`
+  }
+  return '/procurement/purchase-orders/new'
 }
 
 function polarToCartesian(cx, cy, r, angleDeg) {
@@ -341,9 +339,14 @@ function WarehouseChart({ rows, animate }) {
 function Dashboard() {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
-  const isAdmin = user?.roleName === 'ADMIN'
+  const isAdmin = useAuthStore((state) => state.isAdmin())
   const isStaff = user?.roleName === 'WAREHOUSE_STAFF'
+  const isViewer = user?.roleName === 'VIEWER'
+  const canSeeProcurementReorder = isAdmin || isViewer
   const warehouseId = isStaff ? user?.warehouseId : undefined
+
+  const { data: pipelineCount = 0 } = usePendingPipelineOrdersCountQuery()
+  const { data: navLowStockCount = 0 } = useLowStockCountQuery()
 
   const [ready, setReady] = useState(false)
   useEffect(() => {
@@ -403,6 +406,7 @@ function Dashboard() {
       return r.data
     },
     staleTime: 0,
+    refetchInterval: 60_000,
   })
 
   const { data: receiptsData } = useQuery({
@@ -412,6 +416,7 @@ function Dashboard() {
       return r.data
     },
     staleTime: 0,
+    refetchInterval: 60_000,
   })
 
   const { data: poData } = useQuery({
@@ -421,6 +426,7 @@ function Dashboard() {
       return r.data
     },
     staleTime: 30_000,
+    refetchInterval: 60_000,
   })
 
   const { data: productPageData } = useQuery({
@@ -432,11 +438,26 @@ function Dashboard() {
     staleTime: 60_000,
   })
 
+  const { data: reorderRecs = [] } = useQuery({
+    queryKey: ['dashboard', 'reorder-recommendations'],
+    queryFn: async () => {
+      const r = await procurementApi.get('/reorder-recommendations')
+      return Array.isArray(r.data) ? r.data : []
+    },
+    enabled: canSeeProcurementReorder,
+    staleTime: 60_000,
+  })
+
   const recentOrders = springPageItems(ordersData)
   const orderTotalCount = springPageTotalElements(ordersData) || recentOrders.length
   const pendingReceipts = springPageItems(receiptsData)
   const poList = springPageItems(poData)
-  const overduePOs = poList.filter((po) => po.expectedDelivery && new Date(po.expectedDelivery) < new Date()).length
+  const overduePOs = poList.filter(
+    (po) =>
+      po.expectedDelivery &&
+      new Date(po.expectedDelivery) < new Date() &&
+      !['COMPLETED', 'CANCELLED', 'CLOSED'].includes(String(po.status ?? '').toUpperCase())
+  ).length
   const productCatalogTotal = springPageTotalElements(productPageData)
 
   const invValue = metricsBundle?.inventoryValueGHS ?? 0
@@ -449,30 +470,53 @@ function Dashboard() {
   const counts = trendData?.counts ?? [0, 0, 0, 0, 0, 0, 0]
   const rev = trendData?.revenue ?? [0, 0, 0, 0, 0, 0, 0]
 
-  const summaryCards = [
-    {
-      label: 'Product catalog',
-      sub: 'SKU count (server)',
-      value: String(productCatalogTotal || (metricsBundle?.productCount ?? 0)),
-      icon: Package,
-      accent: 'indigo',
-      onClick: () => navigate('/inventory/products'),
-    },
+  const kpiCards = [
     {
       label: 'Active orders',
-      sub: 'All statuses · total count',
-      value: String(orderTotalCount),
+      sub: 'Pending · processing',
+      value: String(pipelineCount),
       icon: ShoppingCart,
-      accent: 'emerald',
+      border: 'border-l-[3px] border-l-blue-500',
+      iconBg: 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300',
       onClick: () => navigate('/orders'),
     },
     {
-      label: 'Low stock lines',
+      label: 'Low stock alerts',
       sub: 'Below reorder threshold',
-      value: String(lowStockItems.length),
+      value: String(Math.max(navLowStockCount, lowStockItems.length)),
       icon: AlertTriangle,
-      accent: 'orange',
+      border: 'border-l-[3px] border-l-amber-500',
+      iconBg: 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300',
+      pulse: navLowStockCount > 0 || lowStockItems.length > 0,
       onClick: () => navigate('/inventory/low-stock'),
+    },
+    {
+      label: 'Pending receipts',
+      sub: 'Awaiting confirmation',
+      value: String(pendingReceipts.length),
+      icon: PackageCheck,
+      border: 'border-l-[3px] border-l-purple-500',
+      iconBg: 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300',
+      onClick: () => navigate('/warehouse/receipts'),
+    },
+    {
+      label: 'Overdue deliveries',
+      sub: 'POs past expected date',
+      value: String(overduePOs),
+      icon: Truck,
+      border: 'border-l-[3px] border-l-red-500',
+      iconBg: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',
+      onClick: () => navigate('/procurement/purchase-orders'),
+    },
+  ]
+
+  const secondaryCards = [
+    {
+      label: 'Product catalog',
+      sub: 'SKU count',
+      value: String(productCatalogTotal || (metricsBundle?.productCount ?? 0)),
+      icon: Package,
+      onClick: () => navigate('/inventory/products'),
     },
     {
       label: 'Inventory value',
@@ -480,72 +524,39 @@ function Dashboard() {
       value: formatGHSCompact(invValue),
       raw: true,
       icon: Box,
-      accent: 'violet',
       onClick: () => navigate('/inventory/stock'),
     },
+    ...(canSeeProcurementReorder
+      ? [
+          {
+            label: 'Reorder suggestions',
+            sub: 'Lines below threshold',
+            value: String(reorderRecs.length),
+            icon: TrendingUp,
+            onClick: () => navigate('/procurement/reorder-recommendations'),
+          },
+        ]
+      : []),
   ]
-
-  const accentRing = {
-    indigo: 'hover:border-indigo-200 dark:hover:border-indigo-700 hover:bg-indigo-50/80 dark:hover:bg-indigo-950/30',
-    emerald: 'hover:border-emerald-200 dark:hover:border-emerald-700 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/30',
-    orange: 'hover:border-orange-200 dark:hover:border-orange-700 hover:bg-orange-50/80 dark:hover:bg-orange-950/30',
-    violet: 'hover:border-violet-200 dark:hover:border-violet-700 hover:bg-violet-50/80 dark:hover:bg-violet-950/30',
-  }
-
-  const iconBg = {
-    indigo: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300',
-    emerald: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300',
-    orange: 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-300',
-    violet: 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-300',
-  }
 
   return (
     <div className="space-y-6">
-      <div
-        className="relative overflow-hidden rounded-2xl px-8 py-7 border border-deep-green/20 text-dark-base dark:text-gray-100 dark:border-deep-green/30"
-        style={{ backgroundColor: 'var(--hero-bg, #B0E4CC)' }}
-      >
-        <div className="absolute inset-0 bg-white/30 dark:bg-gray-900/20 pointer-events-none" />
-        <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-medium-green/15 pointer-events-none" />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              Welcome back, {user?.firstName || 'User'}!
-            </h2>
-            <p className="mt-1 text-sm opacity-80">
-              Figures below use live inventory and orders. Amounts are in Ghana Cedis (GHS).
-            </p>
-            {warehouseId && (
-              <span className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 dark:bg-gray-800/70 text-xs font-semibold border border-deep-green/25">
-                Assigned warehouse: {String(warehouseId).slice(0, 8)}…
-              </span>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="text-xs opacity-70 mb-1 font-medium">Orders (total)</p>
-            <div className="flex items-center gap-1 justify-end">
-              <Activity size={16} className="text-deep-green" />
-              <span className="text-2xl font-bold tabular-nums">{orderTotalCount}</span>
-            </div>
-          </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-brand-navy dark:text-white">Dashboard</h1>
+          <p className="text-sm text-slate-400">{format(new Date(), "EEEE, MMMM d, yyyy · HH:mm")}</p>
+          {warehouseId && (
+            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+              Scoped warehouse · {String(warehouseId).slice(0, 8)}…
+            </span>
+          )}
         </div>
-
-        {(isAdmin || isStaff) && (
-          <div className="relative mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => navigate('/inventory/products')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-gray-800/90 text-deep-green dark:text-mint border border-deep-green/30 text-sm font-semibold rounded-lg shadow-sm hover:bg-white dark:hover:bg-gray-800 transition-all"
-            >
-              <Package size={15} /> Products
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/orders/new')}
-              className="flex items-center gap-2 px-4 py-2 bg-deep-green hover:bg-medium-green text-white text-sm font-semibold rounded-lg transition-all shadow-sm"
-            >
-              <Plus size={15} /> New order
-            </button>
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Warehouse</span>
+            <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              All warehouses
+            </span>
           </div>
         )}
       </div>
@@ -554,31 +565,161 @@ function Dashboard() {
         <p className="text-sm text-gray-500 dark:text-gray-400">Loading inventory metrics…</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {summaryCards.map((card, idx) => {
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpiCards.map((card, idx) => {
           const Icon = card.icon
           return (
             <button
               key={card.label}
               type="button"
               onClick={card.onClick}
-              className={`text-left app-card p-5 border border-gray-200/80 dark:border-gray-700/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer opacity-0 ${accentRing[card.accent]}`}
+              className={`rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-gray-700 dark:bg-gray-800/80 ${card.border} opacity-0`}
               style={{ animation: ready ? `fadeSlideUp 0.45s ease forwards ${idx * 0.07}s` : 'none' }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{card.label}</p>
-                <div className={`p-2.5 rounded-xl ${iconBg[card.accent]}`}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{card.label}</p>
+                <div className={`relative flex h-9 w-9 items-center justify-center rounded-full ${card.iconBg}`}>
+                  {card.pulse && (
+                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                  )}
                   <Icon size={18} />
                 </div>
               </div>
-              <p className={`font-bold text-gray-800 dark:text-white mb-1 ${card.raw ? 'text-2xl' : 'text-3xl'} tabular-nums`}>
-                {card.value}
+              <p className="mt-3 font-mono text-3xl font-bold tabular-nums text-slate-900 dark:text-white">{card.value}</p>
+              <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                <Activity size={12} /> {card.sub}
               </p>
-              <p className="text-xs text-gray-400">{card.sub}</p>
             </button>
           )
         })}
       </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {secondaryCards.map((card) => {
+          const Icon = card.icon
+          return (
+            <button
+              key={card.label}
+              type="button"
+              onClick={card.onClick}
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-brand-blue/30 dark:border-gray-700 dark:bg-gray-800/80"
+            >
+              <div>
+                <p className="text-xs font-medium text-slate-500">{card.label}</p>
+                <p className={`mt-1 font-semibold text-slate-900 dark:text-white ${card.raw ? 'font-mono text-xl' : 'text-2xl tabular-nums'}`}>
+                  {card.value}
+                </p>
+                <p className="text-xs text-slate-400">{card.sub}</p>
+              </div>
+              <div className="rounded-xl bg-slate-100 p-3 dark:bg-gray-700">
+                <Icon size={20} className="text-slate-600 dark:text-slate-300" />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {canSeeProcurementReorder && reorderRecs.length > 0 && (
+        <div className="app-card p-5 border-l-[3px] border-l-amber-500">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-800 dark:text-white">Top reorder priorities</h3>
+              <p className="text-xs text-gray-400">Highest-urgency lines · pre-filled create PO</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/procurement/reorder-recommendations')}
+              className="text-xs font-semibold text-medium-green hover:underline"
+            >
+              View all
+            </button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {reorderRecs.slice(0, 3).map((row, i) => (
+              <button
+                key={`${row.productId}-${row.locationId}-${i}`}
+                type="button"
+                onClick={() => navigate(reorderPoHref(row))}
+                className="text-left rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 px-4 py-3 hover:border-medium-green/40 transition-colors"
+              >
+                <p className="text-xs font-bold uppercase text-amber-700 dark:text-amber-300">{row.urgency ?? '—'}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 line-clamp-2">
+                  {row.productName || row.sku || 'Product'}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Qty {row.recommendedQty ?? row.suggestedOrderQuantity ?? '—'}
+                  {row.preferredSupplierName ? ` · ${row.preferredSupplierName}` : ''}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(isAdmin || isStaff) && (
+        <div className="flex flex-col gap-3 rounded-xl border border-blue-100 bg-brand-blue-light px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-blue-900/40 dark:bg-blue-950/20">
+          <p className="text-sm font-medium text-brand-blue">Quick actions</p>
+          <div className="flex flex-wrap gap-2">
+            {isAdmin && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate('/orders/new')}
+                  className="h-8 rounded-lg bg-brand-blue px-4 text-xs font-semibold text-white hover:bg-blue-700"
+                >
+                  + New order
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/inventory/products')}
+                  className="h-8 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                >
+                  + Add product
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/procurement/purchase-orders/new')}
+                  className="h-8 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                >
+                  + Create PO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/users')}
+                  className="h-8 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                >
+                  + Add user
+                </button>
+              </>
+            )}
+            {isStaff && !isAdmin && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate('/orders/new')}
+                  className="h-8 rounded-lg bg-brand-blue px-4 text-xs font-semibold text-white hover:bg-blue-700"
+                >
+                  + New order
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/warehouse/receipts')}
+                  className="h-8 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-slate-700"
+                >
+                  Receive goods
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/warehouse/movements')}
+                  className="h-8 rounded-lg border border-slate-200 bg-white px-4 text-xs font-medium text-slate-700"
+                >
+                  Move stock
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="app-card p-6">
@@ -644,8 +785,8 @@ function Dashboard() {
                 key={String(order.orderId)}
                 role="button"
                 tabIndex={0}
-                onClick={() => navigate('/orders')}
-                onKeyDown={(e) => e.key === 'Enter' && navigate('/orders')}
+                onClick={() => navigate(`/orders/${order.orderId}`)}
+                onKeyDown={(e) => e.key === 'Enter' && navigate(`/orders/${order.orderId}`)}
                 className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors cursor-pointer group"
               >
                 <div className="flex-1 min-w-0">
@@ -767,19 +908,21 @@ function Dashboard() {
           <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
             {poList.slice(0, 5).map((po) => {
               const isOverdue = po.expectedDelivery && new Date(po.expectedDelivery) < new Date()
+              const poKey = po.purchaseOrderId ?? po.poId ?? po.id
               return (
                 <div
-                  key={po.poId ?? po.id}
+                  key={String(poKey)}
                   role="button"
                   tabIndex={0}
-                  onClick={() => navigate('/procurement/purchase-orders')}
+                  onClick={() => poKey && navigate(`/procurement/purchase-orders/${poKey}`)}
+                  onKeyDown={(e) => e.key === 'Enter' && poKey && navigate(`/procurement/purchase-orders/${poKey}`)}
                   className="flex items-center gap-4 px-6 py-4 hover:bg-violet-50/40 dark:hover:bg-violet-900/10 transition-colors cursor-pointer"
                 >
                   <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isOverdue ? 'bg-red-100 dark:bg-red-900/40' : 'bg-violet-100 dark:bg-violet-900/40'}`}>
                     <Clock size={16} className={isOverdue ? 'text-red-500' : 'text-violet-500'} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-white truncate">{po.poId ?? po.id ?? '—'}</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white truncate">{String(poKey ?? '—')}</p>
                     <p className="text-xs text-gray-400 truncate mt-0.5">{po.supplierName ?? po.supplier ?? '—'}</p>
                   </div>
                   <div className="text-right flex-shrink-0">

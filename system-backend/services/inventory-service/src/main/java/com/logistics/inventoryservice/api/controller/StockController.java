@@ -1,5 +1,6 @@
 package com.logistics.inventoryservice.api.controller;
 
+import com.logistics.inventoryservice.application.dto.request.AdjustStockRequest;
 import com.logistics.inventoryservice.application.dto.request.ReserveStockRequest;
 import com.logistics.inventoryservice.application.dto.response.ReservationResponse;
 import com.logistics.inventoryservice.application.dto.response.StockLevelResponse;
@@ -50,5 +51,11 @@ public class StockController {
     ) {
         stockService.releaseStock(orderId, reason);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Manual adjustment (returns restock, damage, corrections). */
+    @PostMapping("/adjust")
+    public ResponseEntity<StockLevelResponse> adjustStock(@Valid @RequestBody AdjustStockRequest request) {
+        return ResponseEntity.ok(stockService.adjustStock(request));
     }
 }

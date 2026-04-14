@@ -8,15 +8,18 @@ import com.logistics.ordermanagementservice.application.dto.request.CreateOrderR
 import com.logistics.ordermanagementservice.application.dto.response.OrderItemResponse;
 import com.logistics.ordermanagementservice.application.dto.response.OrderResponse;
 import com.logistics.ordermanagementservice.application.dto.response.OrderStatusHistoryResponse;
+import com.logistics.ordermanagementservice.application.dto.response.ProductPipelineDemandDto;
 import com.logistics.ordermanagementservice.infrastructure.lock.OrderDistributedLock;
 import com.logistics.ordermanagementservice.infrastructure.messaging.OutboxEventPublisher;
 import com.logistics.ordermanagementservice.infrastructure.persistence.entity.OrderEntity;
 import com.logistics.ordermanagementservice.infrastructure.persistence.entity.OrderItemEntity;
 import com.logistics.ordermanagementservice.infrastructure.persistence.entity.OrderStatusHistoryEntity;
 import com.logistics.ordermanagementservice.infrastructure.persistence.entity.SagaInstanceEntity;
+import com.logistics.ordermanagementservice.infrastructure.persistence.repository.OrderItemJpaRepository;
 import com.logistics.ordermanagementservice.infrastructure.persistence.repository.OrderJpaRepository;
 import com.logistics.ordermanagementservice.infrastructure.persistence.repository.OrderStatusHistoryJpaRepository;
 import com.logistics.ordermanagementservice.infrastructure.persistence.repository.SagaInstanceJpaRepository;
+import com.logistics.common.security.LogisticsTenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -47,12 +50,22 @@ public class OrderService {
     );
 
     private final OrderJpaRepository orderRepository;
+    private final OrderItemJpaRepository orderItemRepository;
     private final OrderStatusHistoryJpaRepository historyRepository;
     private final SagaInstanceJpaRepository sagaRepository;
     private final OutboxEventPublisher outboxEventPublisher;
     private final ObjectMapper objectMapper;
     private final OrderDistributedLock orderDistributedLock;
     private final OrderFulfillmentSagaOrchestrator sagaOrchestrator;
+
+    private static UUID tenantCompanyId() {
+        return LogisticsTenantContext.getCompanyId();
+    }
+
+    private OrderEntity requireOrderForTenant(UUID orderId) {
+        return orderRepository.findByOrderIdAndCompanyId(orderId, tenantCompanyId())
+            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Order not found"));
+    }
 
     private void validateTransition(String from, String to) {
         Set<String> allowed = ALLOWED_TRANSITIONS.getOrDefault(from, Set.of());
@@ -76,6 +89,7 @@ public class OrderService {
         OrderEntity order = new OrderEntity();
         order.setCustomerId(request.customerId());
         order.setWarehouseId(request.warehouseId());
+        order.setCompanyId(tenantCompanyId());
         order.setStatus("DRAFT");
         order.setPriority(priority);
         order.setExpectedDelivery(request.expectedDelivery());
@@ -102,26 +116,64 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderResponse getOrder(UUID orderId) {
-        OrderEntity order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Order not found"));
-        return OrderResponse.from(order);
+        return OrderResponse.from(requireOrderForTenant(orderId));
     }
 
     @Transactional(readOnly = true)
-    public Page<OrderResponse> listOrders(Pageable pageable) {
-        return orderRepository.findAll(pageable).map(OrderResponse::from);
+    public Page<OrderResponse> listOrders(Pageable pageable, String status, UUID warehouseId) {
+        UUID cid = tenantCompanyId();
+        boolean hasStatus = status != null && !status.isBlank();
+        if (warehouseId != null && hasStatus) {
+            return orderRepository.findAllByCompanyIdAndWarehouseIdAndStatus(cid, warehouseId, status, pageable).map(OrderResponse::from);
+        }
+        if (warehouseId != null) {
+            return orderRepository.findAllByCompanyIdAndWarehouseId(cid, warehouseId, pageable).map(OrderResponse::from);
+        }
+        if (hasStatus) {
+            return orderRepository.findAllByCompanyIdAndStatus(cid, status, pageable).map(OrderResponse::from);
+        }
+        return orderRepository.findAllByCompanyId(cid, pageable).map(OrderResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductPipelineDemandDto> pipelineDemandByProduct() {
+        return orderItemRepository.sumOpenPipelineQuantityByProduct(tenantCompanyId()).stream()
+            .map(r -> new ProductPipelineDemandDto((UUID) r[0], ((Number) r[1]).longValue()))
+            .toList();
+    }
+
+    @Transactional
+    public OrderResponse markDelivered(UUID orderId, UUID actorId) {
+        OrderEntity order = requireOrderForTenant(orderId);
+        String from = order.getStatus();
+        if (!"SHIPPED".equals(from)) {
+            throw new BusinessException("INVALID_STATE_TRANSITION", "Only SHIPPED orders can be marked delivered");
+        }
+        validateTransition(from, "DELIVERED");
+        order.setStatus("DELIVERED");
+        orderRepository.save(order);
+        recordHistory(orderId, from, "DELIVERED", actorId, null);
+        try {
+            String payload = toJson(Map.of(
+                "orderId", orderId.toString(),
+                "status", "DELIVERED"
+            ));
+            outboxEventPublisher.publish("order.status.changed", orderId, payload);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException("VALIDATION_ERROR", "Failed to serialize event payload");
+        }
+        return OrderResponse.from(requireOrderForTenant(orderId));
     }
 
     @Transactional(readOnly = true)
     public List<OrderItemResponse> listOrderItems(UUID orderId) {
-        OrderEntity order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Order not found"));
+        OrderEntity order = requireOrderForTenant(orderId);
         return order.getItems().stream().map(OrderItemResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
     public List<OrderStatusHistoryResponse> listOrderHistory(UUID orderId) {
-        if (!orderRepository.existsById(orderId)) {
+        if (!orderRepository.existsByOrderIdAndCompanyId(orderId, tenantCompanyId())) {
             throw new BusinessException("NOT_FOUND", "Order not found");
         }
         return historyRepository.findAllByOrderIdOrderByChangedAtDesc(orderId).stream()
@@ -136,8 +188,7 @@ public class OrderService {
         }
         registerLockRelease(orderId);
         try {
-            OrderEntity order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new BusinessException("NOT_FOUND", "Order not found"));
+            OrderEntity order = requireOrderForTenant(orderId);
             if (!"DRAFT".equals(order.getStatus())) {
                 throw new BusinessException("INVALID_STATE_TRANSITION", "Only DRAFT orders can be submitted");
             }
@@ -162,7 +213,7 @@ public class OrderService {
             sagaRepository.save(saga);
 
             recordHistory(orderId, from, "PENDING", submittedBy, null);
-            return OrderResponse.from(orderRepository.findById(orderId).orElseThrow());
+            return OrderResponse.from(requireOrderForTenant(orderId));
         } catch (JsonProcessingException e) {
             throw new BusinessException("VALIDATION_ERROR", "Failed to serialize event payload");
         }
@@ -179,8 +230,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse cancelOrder(UUID orderId, CancelOrderRequest request) {
-        OrderEntity order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new BusinessException("NOT_FOUND", "Order not found"));
+        OrderEntity order = requireOrderForTenant(orderId);
         String from = order.getStatus();
         if (!"PENDING".equals(from) && !"PROCESSING".equals(from)) {
             throw new BusinessException(
@@ -202,7 +252,7 @@ public class OrderService {
         } catch (JsonProcessingException e) {
             throw new BusinessException("VALIDATION_ERROR", "Failed to serialize event payload");
         }
-        return OrderResponse.from(orderRepository.findById(orderId).orElseThrow());
+        return OrderResponse.from(requireOrderForTenant(orderId));
     }
 
     @Transactional

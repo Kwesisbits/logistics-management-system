@@ -52,3 +52,6 @@ management:
 logging:
   level:
     com.logistics: DEBUG
+
+paseto:
+  secret-key: ${PASETO_SECRET_KEY:logistics-local-secret-key-32chars!!}

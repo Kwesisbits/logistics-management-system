@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import NetivLogo from '../components/marketing/NetivLogo'
 import useAuthStore from '../store/authStore'
 import { identityApi } from '../services/axiosInstance'
-import warehouseImg from '../assets/logistic.jpg'
 import ThemeToggle from '../components/ThemeToggle'
 
 // Error code → friendly message map (from your API spec)
@@ -17,6 +18,8 @@ const DEV_AUTH_FALLBACK = import.meta.env.VITE_DEV_AUTH_FALLBACK === 'true'
 function permissionsForRole(roleName) {
   if (!roleName) return []
   const map = {
+    SUPER_ADMIN: ['users:ADMIN', 'inventory:READ', 'inventory:WRITE', 'orders:READ', 'orders:WRITE', 'reports:READ'],
+    COMPANY_ADMIN: ['users:ADMIN', 'inventory:READ', 'inventory:WRITE', 'orders:READ', 'orders:WRITE', 'reports:READ'],
     ADMIN: ['inventory:READ', 'inventory:WRITE', 'orders:READ', 'orders:WRITE', 'reports:READ'],
     WAREHOUSE_STAFF: ['inventory:READ', 'inventory:WRITE', 'orders:READ', 'orders:WRITE'],
     VIEWER: ['inventory:READ', 'orders:READ', 'reports:READ'],
@@ -44,9 +47,13 @@ function normalizeAuthUser(apiUser) {
     lastName,
     roleName,
     warehouseId: apiUser.warehouseId,
+    companyId: apiUser.companyId,
     permissions: permissionsForRole(roleName),
   }
 }
+
+const inputClass =
+  'mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -86,7 +93,12 @@ function Login() {
     } catch (err) {
       const code = err?.apiError?.code ?? err?.response?.data?.code
       const msg = err?.apiError?.message ?? err?.response?.data?.message
-      setError(msg || (code === 'VALIDATION_ERROR' ? 'Check email format and password length (8+).' : 'Unable to reset password. Try again.'))
+      setError(
+        msg ||
+          (code === 'VALIDATION_ERROR'
+            ? 'Check email format and password length (8+).'
+            : 'Unable to reset password. Try again.')
+      )
     } finally {
       setLoading(false)
     }
@@ -105,9 +117,10 @@ function Login() {
             email: 'admin@logistics.com',
             firstName: 'Admin',
             lastName: 'User',
-            roleName: 'ADMIN',
+            roleName: 'SUPER_ADMIN',
+            companyId: null,
             warehouseId: null,
-            permissions: ['inventory:READ', 'inventory:WRITE', 'orders:READ', 'orders:WRITE'],
+            permissions: permissionsForRole('SUPER_ADMIN'),
           })
           navigate('/dashboard')
           return
@@ -153,65 +166,86 @@ function Login() {
       setLoading(false)
     }
   }
+
   return (
-    <div className="flex min-h-screen">
-      {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-10 bg-dark-base">
-        <img
-          src={warehouseImg}
-          alt="Warehouse"
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
-        />
-        <div className="relative z-10">
-          <h1 className="text-mint text-3xl font-bold tracking-wide">Kratex</h1>
-          <p className="text-mint opacity-60 text-sm mt-1">Warehouse Management System</p>
-        </div>
-        <div className="relative z-10">
-          <h2 className="text-white text-4xl font-bold leading-snug mb-4">
-            Manage your warehouse smarter
-          </h2>
-          <p className="text-mint opacity-80 text-base leading-relaxed">
-            Track inventory, orders, and shipments all in one place
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      {/* Left — matches Signup / landing brand panel (no image) */}
+      <div className="flex flex-col bg-brand-navy p-8 text-white lg:w-1/2 lg:p-12">
+        <NetivLogo wordClass="text-xl font-semibold text-white" />
+        <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-10 lg:py-12">
+          <h2 className="mb-2 text-3xl font-bold">Welcome back</h2>
+          <p className="mb-8 text-slate-300">
+            Sign in to Netiv — total visibility across inventory, warehouses, orders, and procurement.
           </p>
+          <ul className="mb-10 space-y-3 text-sm text-slate-200">
+            {[
+              'Same real-time platform as the marketing site',
+              'Role-based dashboards for your whole team',
+              'Secure session · Audit-friendly operations',
+            ].map((t) => (
+              <li key={t} className="flex gap-2">
+                <span className="shrink-0 text-emerald-400">✓</span>
+                {t}
+              </li>
+            ))}
+          </ul>
+          <blockquote className="border-l-[3px] border-brand-blue pl-4 text-sm italic text-slate-300">
+            &ldquo;Total visibility. Smarter operations.&rdquo;
+            <footer className="mt-2 not-italic text-slate-500">— Netiv</footer>
+          </blockquote>
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="relative w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-gray-950">
-        <div className="absolute top-4 right-4 sm:top-6 sm:right-6">
+      {/* Right — form (aligned with SignupPage) */}
+      <div className="relative flex flex-1 flex-col bg-white dark:bg-gray-950">
+        <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
           <ThemeToggle />
         </div>
-        <div className="w-full max-w-md">
 
-          <div className="lg:hidden mb-8 text-center">
-            <h1 className="text-dark-base dark:text-white text-3xl font-bold">Kratex</h1>
-            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Warehouse Management System</p>
-          </div>
+        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center px-6 py-10 lg:px-10">
+          <Link
+            to="/"
+            className="mb-8 inline-flex w-fit items-center gap-2 text-sm text-slate-500 hover:text-brand-blue dark:text-slate-400"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Link>
 
-          <h2 className="text-2xl font-bold text-dark-base dark:text-white mb-2">
-            {showReset ? 'Reset password' : 'Welcome back'}
-          </h2>
-          <p className="text-gray-400 dark:text-gray-500 text-sm mb-8">
-            {showReset
-              ? 'Enter your account email and choose a new password (min. 8 characters).'
-              : 'Sign in to your account to continue'}
+          <h1 className="text-2xl font-semibold text-brand-navy dark:text-white">
+            {showReset ? 'Reset password' : 'Log in to Netiv'}
+          </h1>
+          <p className="mt-1 mb-8 text-sm text-slate-500 dark:text-slate-400">
+            {showReset ? (
+              'Enter your account email and choose a new password (min. 8 characters).'
+            ) : (
+              <>
+                New to Netiv?{' '}
+                <Link to="/signup" className="font-medium text-brand-blue hover:underline">
+                  Create an account
+                </Link>
+                {' · '}
+                <Link to="/" className="text-brand-blue hover:underline">
+                  Marketing site
+                </Link>
+              </>
+            )}
           </p>
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-sm px-4 py-3 rounded-lg mb-6 border border-red-200 dark:border-red-900/60">
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
               {error}
             </div>
           )}
           {resetMessage && (
-            <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-sm px-4 py-3 rounded-lg mb-6 border border-emerald-200 dark:border-emerald-900/60">
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300">
               {resetMessage}
             </div>
           )}
 
           {showReset ? (
             <form onSubmit={handleResetPassword} className="space-y-5">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-dark-base dark:text-gray-200">Email</label>
+              <div>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Email</label>
                 <input
                   type="email"
                   value={email}
@@ -219,14 +253,11 @@ function Login() {
                   placeholder="you@company.com"
                   required
                   autoComplete="email"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
-                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
-                    placeholder:text-gray-400 dark:placeholder:text-gray-500
-                    focus:outline-none focus:border-medium-green transition-colors duration-200"
+                  className={inputClass}
                 />
               </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-dark-base dark:text-gray-200">New password</label>
+              <div>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">New password</label>
                 <input
                   type="password"
                   value={newPassword}
@@ -235,14 +266,11 @@ function Login() {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
-                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
-                    placeholder:text-gray-400 dark:placeholder:text-gray-500
-                    focus:outline-none focus:border-medium-green transition-colors duration-200"
+                  className={inputClass}
                 />
               </div>
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-dark-base dark:text-gray-200">Confirm new password</label>
+              <div>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Confirm new password</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -251,24 +279,25 @@ function Login() {
                   required
                   minLength={8}
                   autoComplete="new-password"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
-                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
-                    placeholder:text-gray-400 dark:placeholder:text-gray-500
-                    focus:outline-none focus:border-medium-green transition-colors duration-200"
+                  className={inputClass}
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => { setShowReset(false); setError(''); setResetMessage('') }}
-                  className="flex-1 py-3 rounded-lg border border-gray-200 dark:border-gray-600 text-dark-base dark:text-gray-200 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  onClick={() => {
+                    setShowReset(false)
+                    setError('')
+                    setResetMessage('')
+                  }}
+                  className="flex-1 rounded-lg border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
                   Back to sign in
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 py-3 rounded-lg bg-medium-green hover:bg-deep-green text-white font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 rounded-lg bg-brand-blue py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? 'Updating…' : 'Update password'}
                 </button>
@@ -276,29 +305,30 @@ function Login() {
             </form>
           ) : (
             <form onSubmit={handleLogin} className="space-y-5">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-dark-base dark:text-gray-200">Email Address</label>
+              <div>
+                <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder="you@company.com"
                   required
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
-                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
-                    placeholder:text-gray-400 dark:placeholder:text-gray-500
-                    focus:outline-none focus:border-medium-green
-                    transition-colors duration-200"
+                  autoComplete="email"
+                  className={inputClass}
                 />
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div>
                 <div className="flex items-center justify-between gap-2">
-                  <label className="text-sm font-medium text-dark-base dark:text-gray-200">Password</label>
+                  <label className="text-xs font-medium text-slate-600 dark:text-slate-300">Password</label>
                   <button
                     type="button"
-                    onClick={() => { setShowReset(true); setError(''); setResetMessage('') }}
-                    className="text-xs font-medium text-medium-green hover:text-deep-green hover:underline"
+                    onClick={() => {
+                      setShowReset(true)
+                      setError('')
+                      setResetMessage('')
+                    }}
+                    className="text-xs font-medium text-brand-blue hover:underline"
                   >
                     Forgot password?
                   </button>
@@ -309,28 +339,27 @@ function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700
-                    text-dark-base dark:text-white text-sm bg-light-bg dark:bg-gray-900
-                    placeholder:text-gray-400 dark:placeholder:text-gray-500
-                    focus:outline-none focus:border-medium-green
-                    transition-colors duration-200"
+                  autoComplete="current-password"
+                  className={inputClass}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-lg
-                  bg-medium-green hover:bg-deep-green
-                  text-white font-semibold text-sm
-                  transition-colors duration-200
-                  disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                className="flex h-12 w-full items-center justify-center rounded-lg bg-brand-blue text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? (
+                  <>
+                    <span className="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Signing in…
+                  </>
+                ) : (
+                  'Sign in'
+                )}
               </button>
             </form>
           )}
-
         </div>
       </div>
     </div>
