@@ -6,3 +6,4 @@ CREATE DATABASE logistics_orders_db;
 CREATE DATABASE logistics_procurement_db;
 CREATE DATABASE logistics_notification_db;
 CREATE DATABASE logistics_reporting_db;
+CREATE DATABASE logistics_rag_db;

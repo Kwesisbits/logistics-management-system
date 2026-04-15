@@ -1,6 +1,7 @@
 package com.logistics.warehouseservice.api.controller;
 
 import com.logistics.warehouseservice.application.dto.request.CreateWarehouseRequest;
+import com.logistics.warehouseservice.application.dto.request.UpdateWarehouseRequest;
 import com.logistics.warehouseservice.application.dto.response.WarehouseResponse;
 import com.logistics.warehouseservice.application.service.WarehouseService;
 import jakarta.validation.Valid;
@@ -39,5 +40,13 @@ public class WarehouseController {
     @GetMapping("/{warehouseId}")
     public ResponseEntity<WarehouseResponse> getWarehouse(@PathVariable UUID warehouseId) {
         return ResponseEntity.ok(warehouseService.getWarehouse(warehouseId));
+    }
+
+    @PutMapping("/{warehouseId}")
+    public ResponseEntity<WarehouseResponse> updateWarehouse(
+        @PathVariable UUID warehouseId,
+        @Valid @RequestBody UpdateWarehouseRequest request
+    ) {
+        return ResponseEntity.ok(warehouseService.updateWarehouse(warehouseId, request));
     }
 }

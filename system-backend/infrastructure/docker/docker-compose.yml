@@ -2,13 +2,13 @@ services:
 
   # ── PostgreSQL (one database per service; matches application.yml URLs) ─
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: logistics-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: Daily2020.
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./init-databases.sql:/docker-entrypoint-initdb.d/00-init-databases.sql

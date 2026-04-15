@@ -30,4 +30,13 @@ public interface StockLevelJpaRepository extends JpaRepository<StockLevelEntity,
 
     @Query("SELECT s FROM StockLevelEntity s JOIN ProductEntity p ON s.productId = p.productId WHERE p.companyId = :companyId")
     Page<StockLevelEntity> findPageByCompanyId(@Param("companyId") UUID companyId, Pageable pageable);
+
+    @Modifying
+    @Query(value = """
+        DELETE FROM stock_levels s
+        USING products p
+        WHERE s.product_id = p.product_id
+          AND p.company_id = :companyId
+        """, nativeQuery = true)
+    int deleteByCompanyId(@Param("companyId") UUID companyId);
 }

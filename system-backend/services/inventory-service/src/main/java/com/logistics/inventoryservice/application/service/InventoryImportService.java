@@ -1,6 +1,7 @@
 package com.logistics.inventoryservice.application.service;
 
 import com.logistics.inventoryservice.application.dto.response.InventoryImportResult;
+import com.logistics.inventoryservice.infrastructure.persistence.repository.BatchJpaRepository;
 import com.logistics.inventoryservice.infrastructure.persistence.entity.ProductEntity;
 import com.logistics.inventoryservice.infrastructure.persistence.entity.StockLevelEntity;
 import com.logistics.inventoryservice.infrastructure.persistence.repository.ProductJpaRepository;
@@ -24,10 +25,12 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -36,6 +39,7 @@ public class InventoryImportService {
 
     private final ProductJpaRepository productRepository;
     private final StockLevelJpaRepository stockLevelRepository;
+    private final BatchJpaRepository batchRepository;
 
     private static final DataFormatter XLS_FORMATTER = new DataFormatter();
 
@@ -49,9 +53,8 @@ public class InventoryImportService {
         };
 
         List<String> errors = new ArrayList<>();
-        int productsUpserted = 0;
-        int stockLevelsUpdated = 0;
-        int processed = 0;
+        List<ParsedImportRow> parsedRows = new ArrayList<>();
+        Set<String> importedSkus = new HashSet<>();
 
         for (int i = 0; i < rows.size(); i++) {
             Map<String, String> row = rows.get(i);
@@ -65,47 +68,79 @@ public class InventoryImportService {
                 int reorder = Integer.parseInt(required(row, "reorder_threshold"));
                 int qty = Integer.parseInt(required(row, "quantity_on_hand"));
                 UUID locationId = UUID.fromString(required(row, "location_id"));
-
-                ProductEntity product = productRepository.findByCompanyIdAndSku(companyId, sku).orElseGet(ProductEntity::new);
-                product.setCompanyId(companyId);
-                product.setSku(sku);
-                product.setName(name);
-                String desc = row.get("description");
-                product.setDescription(desc != null && !desc.isBlank() ? desc : null);
-                product.setCategory(category);
-                product.setUnitOfMeasure(uom);
-                product.setUnitCost(unitCost);
-                product.setReorderThreshold(reorder);
-                product.setActive(true);
-                ProductEntity savedProduct = productRepository.save(product);
-                productsUpserted++;
-                final UUID productId = savedProduct.getProductId();
-
-                StockLevelEntity level = stockLevelRepository
-                    .findByProductIdAndLocationId(productId, locationId)
-                    .orElseGet(() -> {
-                        StockLevelEntity s = new StockLevelEntity();
-                        s.setProductId(productId);
-                        s.setLocationId(locationId);
-                        s.setQuantityOnHand(0);
-                        s.setQuantityReserved(0);
-                        return s;
-                    });
-                if (qty < level.getQuantityReserved()) {
-                    throw new IllegalArgumentException(
-                        "quantity_on_hand cannot be below reserved quantity (" + level.getQuantityReserved() + ")");
+                if (qty < 0) {
+                    throw new IllegalArgumentException("quantity_on_hand cannot be negative");
                 }
-                level.setQuantityOnHand(qty);
-                stockLevelRepository.save(level);
-                stockLevelsUpdated++;
-                processed++;
+                if (reorder < 0) {
+                    throw new IllegalArgumentException("reorder_threshold cannot be negative");
+                }
+
+                parsedRows.add(new ParsedImportRow(
+                    sku, name, row.get("description"), category, uom, unitCost, reorder, qty, locationId
+                ));
+                importedSkus.add(sku);
             } catch (Exception ex) {
                 errors.add("Line " + line + ": " + ex.getMessage());
             }
         }
 
+        if (!errors.isEmpty()) {
+            return new InventoryImportResult(0, 0, 0, errors);
+        }
+
+        // Full import replace: clear dependent stock/batches so imported products become source of truth.
+        batchRepository.deleteByCompanyId(companyId);
+        stockLevelRepository.deleteByCompanyId(companyId);
+        if (importedSkus.isEmpty()) {
+            productRepository.deactivateAllByCompanyId(companyId);
+            return new InventoryImportResult(0, 0, 0, List.of());
+        }
+        productRepository.deactivateMissingSkus(companyId, new ArrayList<>(importedSkus));
+
+        int productsUpserted = 0;
+        int stockLevelsUpdated = 0;
+        int processed = 0;
+        for (ParsedImportRow parsed : parsedRows) {
+            ProductEntity product = productRepository.findByCompanyIdAndSku(companyId, parsed.sku())
+                .orElseGet(ProductEntity::new);
+            product.setCompanyId(companyId);
+            product.setSku(parsed.sku());
+            product.setName(parsed.name());
+            String desc = parsed.description();
+            product.setDescription(desc != null && !desc.isBlank() ? desc : null);
+            product.setCategory(parsed.category());
+            product.setUnitOfMeasure(parsed.uom());
+            product.setUnitCost(parsed.unitCost());
+            product.setReorderThreshold(parsed.reorderThreshold());
+            product.setActive(true);
+            ProductEntity savedProduct = productRepository.save(product);
+            productsUpserted++;
+            final UUID productId = savedProduct.getProductId();
+
+            StockLevelEntity level = new StockLevelEntity();
+            level.setProductId(productId);
+            level.setLocationId(parsed.locationId());
+            level.setQuantityOnHand(parsed.quantityOnHand());
+            level.setQuantityReserved(0);
+            stockLevelRepository.save(level);
+            stockLevelsUpdated++;
+            processed++;
+        }
+
         return new InventoryImportResult(processed, productsUpserted, stockLevelsUpdated, errors);
     }
+
+    private record ParsedImportRow(
+        String sku,
+        String name,
+        String description,
+        String category,
+        String uom,
+        BigDecimal unitCost,
+        int reorderThreshold,
+        int quantityOnHand,
+        UUID locationId
+    ) {}
 
     private static String required(Map<String, String> row, String key) {
         String v = row.get(key);

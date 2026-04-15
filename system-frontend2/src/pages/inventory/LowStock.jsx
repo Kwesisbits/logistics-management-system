@@ -6,7 +6,6 @@ import { inventoryApi, warehouseApi } from '../../services/axiosInstance'
 import { springPageItems } from '../../utils/apiNormalize'
 import { enrichLowStockRow, buildProductLookup, buildWarehouseLookup } from '../../utils/enrichInventory'
 
-const CATEGORIES = ['All', 'Hardware', 'Packaging', 'Storage']
 const SORT_OPTIONS = [
   { value: 'qty',  label: 'Lowest qty first' },
   { value: 'pct',  label: 'Worst % first'    },
@@ -80,6 +79,7 @@ function SummaryPills({ items }) {
   const pills = [
     {
   label: 'Out of stock',
+  count: out,
   bg:    'bg-[#1a0a0a] dark:bg-[#1a0a0a]',
   hover: 'hover:bg-[#2a0f0f] hover:-translate-y-0.5',
   border:'border-[#7f1d1d]',
@@ -88,6 +88,7 @@ function SummaryPills({ items }) {
 },
 {
   label: 'Critical',
+  count: critical,
   bg:    'bg-[#1c1000] dark:bg-[#1c1000]',
   hover: 'hover:bg-[#2a1800] hover:-translate-y-0.5',
   border:'border-[#92400e]',
@@ -96,6 +97,7 @@ function SummaryPills({ items }) {
 },
 {
   label: 'Low',
+  count: low,
   bg:    'bg-[#091413] dark:bg-[#091413]',
   hover: 'hover:bg-[#0f2320] hover:-translate-y-0.5',
   border:'border-[#285A48]',
@@ -104,6 +106,7 @@ function SummaryPills({ items }) {
 },
 {
   label: 'Total alerts',
+  count: items.length,
   bg:    'bg-[#091413] dark:bg-[#091413]',
   hover: 'hover:bg-[#0f2320] hover:-translate-y-0.5',
   border:'border-[#408A71]',
@@ -442,6 +445,16 @@ export default function LowStock() {
     [lowStockRaw, productById, warehouseById, locationMeta],
   )
 
+  const categoryOptions = useMemo(() => {
+    const all = new Set()
+    for (const item of rawItems) {
+      if (item.category) {
+        all.add(item.category)
+      }
+    }
+    return ['All', ...Array.from(all).sort((a, b) => String(a).localeCompare(String(b)))]
+  }, [rawItems])
+
   // ── Filtered + sorted items ──
   const items = useMemo(() => {
     let res = rawItems.filter((i) => {
@@ -521,7 +534,7 @@ export default function LowStock() {
             onChange={e => setCategory(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-[#408A71] transition-colors hover:border-[#408A71]"
           >
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            {categoryOptions.map(c => <option key={c}>{c}</option>)}
           </select>
           <button
             onClick={() => refetch()}

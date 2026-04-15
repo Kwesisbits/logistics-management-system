@@ -196,6 +196,10 @@ export default function CreateOrder() {
               className={`w-full px-3 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medium-green transition-all
                 ${errors.customerId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+              {user?.userId ? ` (example: your user UUID ${user.userId})` : ''}
+            </p>
             {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
           </div>
 
