@@ -8,9 +8,6 @@ import { springPageItems } from '../../utils/apiNormalize'
 
 const emptyLine = () => ({ id: crypto.randomUUID(), productId: '', quantity: 1, unitPrice: 0 })
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-
 /** Order service only accepts STANDARD | HIGH | URGENT (see OrderService.createOrder). */
 const PRIORITY_VALUES = ['STANDARD', 'HIGH', 'URGENT']
 
@@ -106,9 +103,6 @@ export default function CreateOrder() {
     const e = {}
     const cid = customerId.trim()
     if (!cid) e.customerId = 'Customer ID is required'
-    else if (!UUID_RE.test(cid)) {
-      e.customerId = 'must be a valid UUID (the API expects a customer UUID, e.g. your user id)'
-    }
     if (!warehouseId) e.warehouseId = 'Select a warehouse'
     if (!PRIORITY_VALUES.includes(priority)) e.priority = 'Select a priority'
     if (lines.length === 0) e.lines = 'Add at least one item'
@@ -192,14 +186,10 @@ export default function CreateOrder() {
               type="text"
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              placeholder="e.g. your user id (UUID)"
-              className={`w-full px-3 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medium-green transition-all
+              placeholder={user?.userId ? user.userId : 'Enter customer ID'}
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
                 ${errors.customerId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Expected format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-              {user?.userId ? ` (example: your user UUID ${user.userId})` : ''}
-            </p>
             {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
           </div>
 
@@ -218,7 +208,7 @@ export default function CreateOrder() {
               <select
                 value={warehouseId}
                 onChange={(e) => setWarehouseId(e.target.value)}
-                className={`w-full px-3 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green transition-all
+                className={`w-full px-3 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
                   ${errors.warehouseId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
               >
                 <option value="">Select warehouse</option>
@@ -240,7 +230,7 @@ export default function CreateOrder() {
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green"
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
             >
               <option value="STANDARD">Standard</option>
               <option value="HIGH">High</option>
@@ -256,7 +246,7 @@ export default function CreateOrder() {
               value={expectedDelivery}
               min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setExpectedDelivery(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green"
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
             />
           </div>
         </div>
@@ -269,7 +259,7 @@ export default function CreateOrder() {
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Optional notes for this order..."
             rows={2}
-            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medium-green resize-none"
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue resize-none"
           />
         </div>
 
@@ -307,7 +297,7 @@ export default function CreateOrder() {
                     <select
                       value={line.productId}
                       onChange={(e) => updateLine(line.id, 'productId', e.target.value)}
-                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green transition-all
+                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
                         ${errors[`line_${i}_product`] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                     >
                       <option value="">Select product</option>
@@ -325,7 +315,7 @@ export default function CreateOrder() {
                       min="1"
                       value={line.quantity}
                       onChange={(e) => updateLine(line.id, 'quantity', e.target.value)}
-                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green transition-all
+                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
                         ${errors[`line_${i}_qty`] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                     />
                   </div>
@@ -336,7 +326,7 @@ export default function CreateOrder() {
                       step="0.01"
                       value={line.unitPrice}
                       onChange={(e) => updateLine(line.id, 'unitPrice', e.target.value)}
-                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green transition-all
+                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
                         ${errors[`line_${i}_price`] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
                     />
                   </div>
@@ -390,7 +380,7 @@ export default function CreateOrder() {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex-1 py-2.5 rounded-lg bg-medium-green hover:bg-deep-green text-white text-sm font-semibold disabled:opacity-60 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="flex-1 py-2.5 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             {submitting && <Loader2 size={14} className="animate-spin" />}
             {submitting ? 'Creating...' : 'Create Order'}

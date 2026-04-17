@@ -318,7 +318,7 @@ function Sidebar({ isCollapsed, isMobile, isMobileOpen, onCloseMobile }) {
   return (
     <aside
       className={`
-        fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-white/5 bg-brand-navy
+        fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r dark:border-white/5 border-blue-900/20 dark:bg-brand-navy bg-blue-950
         transition-all duration-300 ease-in-out
         w-60
         ${isMobile ? (isMobileOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}

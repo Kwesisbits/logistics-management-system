@@ -138,7 +138,7 @@ export default function AllOrders() {
           {canEdit && (
             <button
               onClick={() => navigate('/orders/new')}
-              className="flex items-center gap-2 px-4 py-2 bg-medium-green hover:bg-deep-green active:scale-95 text-white text-sm font-semibold rounded-lg transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-blue hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold rounded-lg transition-all shadow-sm"
             >
               <Plus size={15} /> Create Order
             </button>
@@ -207,14 +207,14 @@ export default function AllOrders() {
             placeholder="Search by order ID or customer..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medium-green transition-all"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
           />
         </div>
         {/* priority filter */}
         <select
           value={priority}
           onChange={(e) => { setPriority(e.target.value); setPage(1) }}
-          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green transition-all"
+          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
         >
           {['All', 'HIGH', 'MEDIUM', 'LOW'].map((p) => (
             <option key={p} value={p}>{p === 'All' ? 'All Priorities' : `${p} Priority`}</option>
@@ -327,7 +327,7 @@ export default function AllOrders() {
                       className={`${step.iconColor} transition-transform duration-300 group-hover:scale-110`}
                     />
                     {hasOrders && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[18px] px-1 flex items-center justify-center rounded-full bg-medium-green text-[10px] font-bold text-white shadow-sm tabular-nums">
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[1.125rem] h-[18px] px-1 flex items-center justify-center rounded-full bg-brand-blue text-[10px] font-bold text-white shadow-sm tabular-nums">
                         {count > 99 ? '99+' : count}
                       </span>
                     )}
@@ -377,7 +377,7 @@ export default function AllOrders() {
                     snap-start flex flex-col min-h-[200px] sm:min-h-[220px]
                     rounded-2xl p-2 transition-all duration-500
                     ${isPulsing
-                      ? 'ring-2 ring-medium-green ring-offset-2 ring-offset-white dark:ring-offset-gray-800 bg-medium-green/5 dark:bg-medium-green/10'
+                      ? 'ring-2 ring-medium-green ring-offset-2 ring-offset-white dark:ring-offset-gray-800 bg-brand-blue/5 dark:bg-brand-blue/10'
                       : 'ring-0 bg-transparent'
                     }
                   `}
@@ -513,7 +513,7 @@ export default function AllOrders() {
               >
                 Previous
               </button>
-              <span className="px-3 py-2 text-xs font-bold bg-medium-green text-white rounded-lg shadow-sm tabular-nums min-w-[2.5rem] text-center">
+              <span className="px-3 py-2 text-xs font-bold bg-brand-blue text-white rounded-lg shadow-sm tabular-nums min-w-[2.5rem] text-center">
                 {page}
               </span>
               <button

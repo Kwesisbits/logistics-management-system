@@ -191,7 +191,7 @@ export default function ReturnDetail() {
             type="button"
             disabled={receiveMut.isPending}
             onClick={() => receiveMut.mutate()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-medium-green hover:bg-deep-green text-white text-sm font-semibold disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50"
           >
             {receiveMut.isPending && <Loader2 className="animate-spin" size={16} />}
             Mark received
@@ -267,7 +267,7 @@ export default function ReturnDetail() {
           <button
             type="submit"
             disabled={processMut.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-medium-green hover:bg-deep-green text-white text-sm font-semibold disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50"
           >
             {processMut.isPending && <Loader2 className="animate-spin" size={16} />}
             Finalize processing

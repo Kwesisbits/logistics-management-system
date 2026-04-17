@@ -59,11 +59,11 @@ function getStatus(item) {
 }
 
 const STATUS_META = {
-  out:      { label: 'Out of Stock', bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-200'    },
-  critical: { label: 'Critical',     bg: 'bg-amber-50',  text: 'text-amber-800',  border: 'border-amber-200'  },
-  low:      { label: 'Low',          bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200' },
-  healthy:  { label: 'Healthy',      bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
-  full:     { label: 'Full',         bg: 'bg-sky-50',    text: 'text-sky-800',    border: 'border-sky-200'    },
+  out:      { label: 'Out of Stock', bg: 'bg-red-50 dark:bg-red-900/30',    text: 'text-red-700 dark:text-red-300',    border: 'border-red-200 dark:border-red-800'    },
+  critical: { label: 'Critical',     bg: 'bg-amber-50 dark:bg-amber-900/30',  text: 'text-amber-800 dark:text-amber-200',  border: 'border-amber-200 dark:border-amber-800'  },
+  low:      { label: 'Low',          bg: 'bg-yellow-50 dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-200', border: 'border-yellow-200 dark:border-yellow-800' },
+  healthy:  { label: 'Healthy',      bg: 'bg-emerald-50 dark:bg-emerald-900/30', text: 'text-emerald-800 dark:text-emerald-200', border: 'border-emerald-200 dark:border-emerald-800' },
+  full:     { label: 'Full',         bg: 'bg-sky-50 dark:bg-sky-900/30',    text: 'text-sky-800 dark:text-sky-200',    border: 'border-sky-200 dark:border-sky-800'    },
 }
 
 function exportCSV(items) {
@@ -101,14 +101,14 @@ function KPICards({ items }) {
       {cards.map(c => (
         <div
           key={c.label}
-          className="app-card p-4 hover:border-medium-green/40 hover:-translate-y-0.5 transition-all duration-200 group cursor-default"
+          className="app-card p-4 hover:border-brand-blue/40 hover:-translate-y-0.5 transition-all duration-200 group cursor-default"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{c.label}</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{c.label}</span>
             <span style={{ color: c.accent }} className="opacity-70 group-hover:opacity-100 transition-opacity">{c.icon}</span>
           </div>
-          <p className="text-2xl font-bold text-dark-base mb-0.5">{c.value}</p>
-          <p className="text-xs text-gray-500">{c.sub}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-0.5">{c.value}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">{c.sub}</p>
         </div>
       ))}
     </div>
@@ -123,18 +123,18 @@ function CriticalAlerts({ items }) {
   const [open, setOpen] = useState(true)
   if (!alerts.length) return null
   return (
-    <div className="app-card border-amber-200/80 bg-amber-50/40 overflow-hidden">
+    <div className="app-card border-amber-200/80 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-900/20 overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-amber-100/60 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-amber-100/60 dark:hover:bg-amber-900/40 transition-colors"
       >
-        <AlertTriangle size={15} className="text-amber-600 flex-shrink-0" />
-        <span className="text-sm font-semibold text-amber-900 flex-1 text-left">
+        <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+        <span className="text-sm font-semibold text-amber-900 dark:text-amber-200 flex-1 text-left">
           {alerts.length} critical alert{alerts.length > 1 ? 's' : ''} — immediate action required
         </span>
         {open
-          ? <ChevronUp size={14} className="text-amber-700" />
-          : <ChevronDown size={14} className="text-amber-700" />
+          ? <ChevronUp size={14} className="text-amber-700 dark:text-amber-400" />
+          : <ChevronDown size={14} className="text-amber-700 dark:text-amber-400" />
         }
       </button>
       {open && (
@@ -142,15 +142,15 @@ function CriticalAlerts({ items }) {
           {alerts.map(item => {
             const st = getStatus(item)
             return (
-              <div key={`${item.productId}-${item.locationId}`} className="flex items-center gap-3 bg-white border border-amber-200/70 rounded-lg px-3 py-2.5 shadow-sm">
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${st === 'out' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
+              <div key={`${item.productId}-${item.locationId}`} className="flex items-center gap-3 bg-white dark:bg-gray-800 border border-amber-200/70 dark:border-amber-800/50 rounded-lg px-3 py-2.5 shadow-sm">
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${st === 'out' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' : 'bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200'}`}>
                   {st === 'out' ? 'OUT' : 'CRIT'}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-dark-base truncate">{item.name}</p>
-                  <p className="text-xs text-gray-500">{item.sku} · {item.warehouse}</p>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{item.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{item.sku} · {item.warehouse}</p>
                 </div>
-                <span className="text-xs font-bold text-red-600">{item.quantityAvailable} left</span>
+                <span className="text-xs font-bold text-red-600 dark:text-red-400">{item.quantityAvailable} left</span>
               </div>
             )
           })}
@@ -243,7 +243,7 @@ function LineChartView({ items }) {
           className="fixed z-50 app-card px-3 py-2.5 text-xs pointer-events-none max-w-[min(280px,calc(100vw-24px))] shadow-lg"
           style={{ left: hoverDay.x, top: hoverDay.y }}
         >
-          <p className="font-semibold text-dark-base border-b border-gray-100 pb-1 mb-1.5">{WEEK_LABELS[hoverDay.dayIdx]}</p>
+          <p className="font-semibold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-1 mb-1.5">{WEEK_LABELS[hoverDay.dayIdx]}</p>
           <ul className="space-y-1 max-h-40 overflow-y-auto">
             {items.map((item, ci) => {
               const vals = weeklyTrendVals(item)
@@ -251,11 +251,11 @@ function LineChartView({ items }) {
               const color = colors[ci % colors.length]
               return (
                 <li key={`${item.productId}-${item.locationId}`} className="flex justify-between gap-3">
-                  <span className="text-gray-600 truncate" title={item.name}>
+                  <span className="text-gray-600 dark:text-gray-300 truncate" title={item.name}>
                     <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: color }} />
                     {item.name.length > 22 ? `${item.name.slice(0, 22)}…` : item.name}
                   </span>
-                  <span className="font-semibold text-dark-base tabular-nums shrink-0">{v} units</span>
+                  <span className="font-semibold text-gray-900 dark:text-white tabular-nums shrink-0">{v} units</span>
                 </li>
               )
             })}
@@ -264,7 +264,7 @@ function LineChartView({ items }) {
       )}
       <div className="flex flex-wrap gap-3 mt-2">
         {items.map((item, ci) => (
-          <span key={`${item.productId}-${item.locationId}`} className="flex items-center gap-1.5 text-xs text-gray-600">
+          <span key={`${item.productId}-${item.locationId}`} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
             <span className="inline-block w-4 h-1.5 rounded-full" style={{ background: colors[ci % colors.length] }} />
             {item.name.length > 20 ? item.name.slice(0, 20) + '…' : item.name}
           </span>
@@ -309,44 +309,44 @@ function DetailDrawer({ item, onClose, canAdjust, onAdjusted }) {
   const pct = Math.min((item.quantityAvailable / item.maxLevel) * 100, 100)
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 flex justify-end" onClick={onClose}>
       <div
-        className="w-full max-w-md bg-white border-l border-gray-200 h-full overflow-y-auto p-6 space-y-5 shadow-2xl"
+        className="w-full max-w-md bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 h-full overflow-y-auto p-6 space-y-5 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-dark-base text-lg">{item.name}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <h3 className="font-bold text-gray-900 dark:text-white text-lg">{item.name}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             <X size={16} className="text-gray-500" />
           </button>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${sm.bg} ${sm.text} ${sm.border}`}>{sm.label}</span>
-          <span className="text-xs text-gray-500">{item.sku}</span>
-          <span className="text-xs text-gray-500">·</span>
-          <span className="text-xs text-gray-500">{item.category}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{item.sku}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">·</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">{item.category}</span>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'On Hand',   val: item.quantityOnHand,    color: 'text-dark-base' },
-            { label: 'Reserved',  val: item.quantityReserved,  color: 'text-blue-600' },
+            { label: 'On Hand',   val: item.quantityOnHand,    color: 'text-gray-900 dark:text-white' },
+            { label: 'Reserved',  val: item.quantityReserved,  color: 'text-blue-600 dark:text-blue-400' },
             { label: 'Available', val: item.quantityAvailable, color: sm.text },
           ].map(c => (
-            <div key={c.label} className="app-card p-3 text-center border-gray-100">
+            <div key={c.label} className="app-card p-3 text-center">
               <p className={`text-2xl font-bold ${c.color}`}>{c.val}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{c.label}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{c.label}</p>
             </div>
           ))}
         </div>
         <div>
-          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1.5">
             <span>Min: {item.minLevel}</span>
             <span>Max: {item.maxLevel}</span>
           </div>
-          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all duration-500 bg-medium-green" style={{ width: `${pct}%` }} />
+          <div className="h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-500 bg-brand-blue" style={{ width: `${pct}%` }} />
           </div>
-          <p className="text-xs text-gray-500 mt-1">{pct.toFixed(0)}% of max capacity</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{pct.toFixed(0)}% of max capacity</p>
         </div>
         <div className="space-y-2 text-sm">
           {[
@@ -356,14 +356,14 @@ function DetailDrawer({ item, onClose, canAdjust, onAdjusted }) {
             ['Last Updated', item.lastUpdated],
             ['Version',      `v${item.version}`],
           ].map(([k, v]) => (
-            <div key={k} className="flex justify-between border-b border-gray-100 pb-2">
-              <span className="text-gray-500">{k}</span>
-              <span className="text-dark-base font-medium">{v}</span>
+            <div key={k} className="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-2">
+              <span className="text-gray-500 dark:text-gray-400">{k}</span>
+              <span className="text-gray-900 dark:text-white font-medium">{v}</span>
             </div>
           ))}
         </div>
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">Weekly trend</p>
+          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Weekly trend</p>
           <div className="flex items-end gap-1 h-16">
             {weeklyTrendVals(item).map((v, i) => {
               const series = weeklyTrendVals(item)
@@ -377,7 +377,7 @@ function DetailDrawer({ item, onClose, canAdjust, onAdjusted }) {
                   title={`${WEEK_LABELS[i]}: ${v} units`}
                 >
                   <div className="w-full rounded-sm" style={{ height: `${h}%`, background: isLast ? '#408A71' : '#a7d4c4' }} />
-                  <span className="text-xs text-gray-500">{WEEK_LABELS[i]}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{WEEK_LABELS[i]}</span>
                 </div>
               )
             })}
@@ -385,36 +385,36 @@ function DetailDrawer({ item, onClose, canAdjust, onAdjusted }) {
         </div>
 
         {canAdjust && (
-          <div className="border-t border-gray-100 dark:border-gray-800 pt-4 space-y-3">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Adjust stock</p>
-            <p className="text-xs text-gray-400">Positive adds on-hand; negative removes (cycle count, damage, correction).</p>
+          <div className="border-t border-gray-100 dark:border-gray-700 pt-4 space-y-3">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Adjust stock</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Positive adds on-hand; negative removes (cycle count, damage, correction).</p>
             <div className="grid grid-cols-2 gap-2">
-              <label className="text-xs text-gray-500 col-span-2">
+              <label className="text-xs text-gray-500 dark:text-gray-400 col-span-2">
                 Quantity Δ
                 <input
                   type="number"
                   value={delta}
                   onChange={(e) => { setDelta(e.target.value); setAdjErr('') }}
                   placeholder="e.g. 10 or -5"
-                  className="mt-1 w-full px-3 py-2 text-sm border border-gray-200 rounded-lg dark:bg-gray-900 dark:border-gray-700"
+                  className="mt-1 w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 />
               </label>
-              <label className="text-xs text-gray-500 col-span-2">
+              <label className="text-xs text-gray-500 dark:text-gray-400 col-span-2">
                 Reason
                 <input
                   type="text"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 text-sm border border-gray-200 rounded-lg dark:bg-gray-900 dark:border-gray-700"
+                  className="mt-1 w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 />
               </label>
             </div>
-            {adjErr && <p className="text-xs text-red-600">{adjErr}</p>}
+            {adjErr && <p className="text-xs text-red-600 dark:text-red-400">{adjErr}</p>}
             <button
               type="button"
               disabled={adjustMut.isPending}
               onClick={() => adjustMut.mutate()}
-              className="w-full py-2 rounded-lg bg-medium-green text-white text-sm font-semibold hover:opacity-95 disabled:opacity-50"
+              className="w-full py-2 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
             >
               {adjustMut.isPending ? 'Applying…' : 'Apply adjustment'}
             </button>
@@ -575,13 +575,13 @@ export default function StockLevels() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-dark-base tracking-tight">Stock Levels</h1>
-          <p className="text-sm text-gray-500 mt-0.5">On-hand, reserved and available quantities by location</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Stock Levels</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">On-hand, reserved and available quantities by location</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
           <select
             value={dateRange} onChange={e => setDateRange(e.target.value)}
-            className="px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-dark-base focus:outline-none focus:ring-2 focus:ring-medium-green w-full sm:w-auto"
+            className="px-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue w-full sm:w-auto"
           >
             <option value="1d">Today</option>
             <option value="7d">Last 7 days</option>
@@ -590,14 +590,14 @@ export default function StockLevels() {
           </select>
           <button
             onClick={() => exportCSV(filtered)}
-            className="flex items-center justify-center gap-2 px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-600 hover:border-medium-green hover:text-deep-green transition-all w-[calc(50%-0.25rem)] sm:w-auto"
+            className="flex items-center justify-center gap-2 px-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-brand-blue hover:text-brand-blue transition-all w-[calc(50%-0.25rem)] sm:w-auto"
           >
             <Download size={12} /> CSV
           </button>
-          <button className="flex items-center justify-center gap-2 px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-600 hover:border-medium-green hover:text-deep-green transition-all w-[calc(50%-0.25rem)] sm:w-auto">
+          <button className="flex items-center justify-center gap-2 px-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-brand-blue hover:text-brand-blue transition-all w-[calc(50%-0.25rem)] sm:w-auto">
             <FileText size={12} /> PDF
           </button>
-          <button onClick={() => refetch()} className="flex items-center justify-center gap-2 px-3 py-2 text-xs border border-gray-200 rounded-lg bg-white text-gray-600 hover:border-medium-green hover:text-deep-green transition-all w-[calc(50%-0.25rem)] sm:w-auto">
+          <button onClick={() => refetch()} className="flex items-center justify-center gap-2 px-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-brand-blue hover:text-brand-blue transition-all w-[calc(50%-0.25rem)] sm:w-auto">
             <RefreshCw size={12} /> Refresh
           </button>
         </div>
@@ -610,23 +610,23 @@ export default function StockLevels() {
       <CriticalAlerts items={rawItems} />
 
       {/* ── Weekly Trends — own card ── */}
-      <div className="app-card border-l-[3px] border-l-medium-green p-4 sm:p-5">
+      <div className="app-card border-l-[3px] border-l-brand-blue dark:border-l-brand-blue p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <Activity size={14} className="text-medium-green" />
-          <h3 className="text-sm font-semibold text-dark-base">Weekly Trends</h3>
-          <span className="text-xs text-gray-500 ml-1">— stock movement over the past 7 days (hover a day for exact values)</span>
+          <Activity size={14} className="text-brand-blue dark:text-blue-400" />
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Weekly Trends</h3>
+          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">— stock movement over the past 7 days (hover a day for exact values)</span>
         </div>
         <LineChartView items={displayItems} />
       </div>
 
       {/* ── Filters — own card ── */}
-      <div className="app-card border-l-[3px] border-l-deep-green p-4 flex flex-wrap gap-3">
+      <div className="app-card border-l-[3px] border-l-brand-blue/50 dark:border-l-brand-blue/50 p-4 flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
             type="text" placeholder="Search product, SKU, location…"
             value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-white text-dark-base placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medium-green"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-blue"
           />
         </div>
         {isAdmin && (
@@ -636,7 +636,7 @@ export default function StockLevels() {
               setWarehouse(e.target.value)
               setPage(1)
             }}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-dark-base focus:outline-none focus:ring-2 focus:ring-medium-green w-full sm:w-auto"
+            className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue w-full sm:w-auto"
           >
             <option value="All">All warehouses</option>
             {warehouseList.map((w) => (
@@ -648,7 +648,7 @@ export default function StockLevels() {
         )}
         <select
           value={category} onChange={e => { setCategory(e.target.value); setPage(1) }}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white text-dark-base focus:outline-none focus:ring-2 focus:ring-medium-green w-full sm:w-auto"
+          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue w-full sm:w-auto"
         >
           {CATEGORIES.map(c => <option key={c}>{c}</option>)}
         </select>
@@ -657,16 +657,16 @@ export default function StockLevels() {
       {/* ── Loading ── */}
       {isLoading && (
         <div className="app-card p-12 flex flex-col items-center gap-3">
-          <Loader2 size={24} className="animate-spin text-medium-green" />
-          <p className="text-sm text-gray-500">Loading stock levels...</p>
+          <Loader2 size={24} className="animate-spin text-brand-blue" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading stock levels...</p>
         </div>
       )}
 
       {/* ── Error ── */}
       {isError && (
-        <div className="app-card border-red-200 bg-red-50/50 p-8 text-center">
-          <p className="text-sm text-red-700 mb-3">Failed to load stock data</p>
-          <button type="button" onClick={() => refetch()} className="px-4 py-2 text-sm bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors">
+        <div className="app-card border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20 p-8 text-center">
+          <p className="text-sm text-red-700 dark:text-red-300 mb-3">Failed to load stock data</p>
+          <button type="button" onClick={() => refetch()} className="px-4 py-2 text-sm bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/70 transition-colors">
             Retry
           </button>
         </div>
@@ -678,11 +678,11 @@ export default function StockLevels() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/80">
+                <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50">
                   {TABLE_COLS.map(col => (
                     <th
                       key={col.label}
-                      className={`px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide ${col.sortable ? 'cursor-pointer hover:text-medium-green transition-colors' : ''}`}
+                      className={`px-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide ${col.sortable ? 'cursor-pointer hover:text-brand-blue dark:hover:text-blue-400 transition-colors' : ''}`}
                       onClick={() => col.sortable && toggleSort(col.key)}
                     >
                       <span className="flex items-center gap-1">
@@ -693,10 +693,10 @@ export default function StockLevels() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {paged.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-14 text-center text-sm text-gray-600">
+                    <td colSpan={7} className="py-14 text-center text-sm text-gray-500 dark:text-gray-400">
                       No stock records found
                     </td>
                   </tr>
@@ -706,27 +706,27 @@ export default function StockLevels() {
                   return (
                     <tr
                       key={s.stockLevelId}
-                      className="hover:bg-gray-50 transition-colors group cursor-pointer"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group cursor-pointer"
                       onClick={() => setDetailItem(s)}
                     >
                       <td className="px-5 py-4">
-                        <p className="font-semibold text-dark-base group-hover:text-medium-green transition-colors flex items-center gap-1">
+                        <p className="font-semibold text-gray-900 dark:text-white group-hover:text-brand-blue dark:group-hover:text-blue-400 transition-colors flex items-center gap-1">
                           {s.name}
-                          <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 text-medium-green transition-opacity" />
+                          <ChevronRight size={12} className="opacity-0 group-hover:opacity-100 text-brand-blue dark:text-blue-400 transition-opacity" />
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5">{s.sku} · {s.warehouse}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{s.sku} · {s.warehouse}</p>
                       </td>
-                      <td className="px-5 py-4 font-semibold text-dark-base">{s.quantityOnHand}</td>
+                      <td className="px-5 py-4 font-semibold text-gray-900 dark:text-white">{s.quantityOnHand}</td>
                       <td className="px-5 py-4">
                         <span className={`text-sm font-bold ${sm.text}`}>{s.quantityAvailable}</span>
                       </td>
-                      <td className="px-5 py-4 text-xs text-gray-600">
-                        <span className="text-amber-600">{s.minLevel}</span>
-                        <span className="text-gray-400 mx-1">/</span>
-                        <span className="text-medium-green">{s.maxLevel}</span>
+                      <td className="px-5 py-4 text-xs text-gray-600 dark:text-gray-300">
+                        <span className="text-amber-600 dark:text-amber-400">{s.minLevel}</span>
+                        <span className="text-gray-400 dark:text-gray-500 mx-1">/</span>
+                        <span className="text-brand-blue dark:text-blue-400">{s.maxLevel}</span>
                       </td>
-                      <td className="px-5 py-4 text-xs text-gray-600">{s.location}</td>
-                      <td className="px-5 py-4 text-xs text-gray-600">{s.supplier}</td>
+                      <td className="px-5 py-4 text-xs text-gray-600 dark:text-gray-400">{s.location}</td>
+                      <td className="px-5 py-4 text-xs text-gray-600 dark:text-gray-400">{s.supplier}</td>
                       <td className="px-5 py-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${sm.bg} ${sm.text} ${sm.border}`}>
                           {sm.label}
@@ -740,23 +740,23 @@ export default function StockLevels() {
           </div>
 
           {/* Pagination */}
-          <div className="px-4 sm:px-5 py-3 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50/50">
-            <p className="text-xs text-gray-500">
+          <div className="px-4 sm:px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-800/50">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} records
             </p>
             <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-white disabled:opacity-30 transition-all flex-1 sm:flex-none"
+                className="px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-1 sm:flex-none"
               >
                 Previous
               </button>
-              <span className="px-3 py-1.5 text-xs bg-deep-green text-white rounded-lg font-semibold flex items-center justify-center min-w-[72px]">
+              <span className="px-3 py-1.5 text-xs bg-brand-blue text-white rounded-lg font-semibold flex items-center justify-center min-w-[72px]">
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-white disabled:opacity-30 transition-all flex-1 sm:flex-none"
+                className="px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 disabled:opacity-30 transition-all flex-1 sm:flex-none"
               >
                 Next
               </button>

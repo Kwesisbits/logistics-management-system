@@ -263,7 +263,7 @@ export default function PurchaseOrderCreate() {
         <button
           type="submit"
           disabled={createPo.isPending}
-          className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-6 py-2.5 rounded-lg bg-medium-green hover:bg-deep-green text-white text-sm font-semibold disabled:opacity-50"
+          className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-6 py-2.5 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50"
         >
           {createPo.isPending && <Loader2 className="animate-spin" size={16} />}
           Create PO

@@ -474,7 +474,7 @@ export default function Products() {
 
             onClick={openCreate}
 
-            className="flex items-center gap-2 px-4 py-2 bg-medium-green hover:bg-deep-green active:scale-95 text-white text-sm font-semibold rounded-lg transition-all shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-blue hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold rounded-lg transition-all shadow-sm"
 
           >
 
@@ -594,7 +594,7 @@ export default function Products() {
 
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
 
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medium-green transition-all"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
 
           />
 
@@ -606,7 +606,7 @@ export default function Products() {
 
           onChange={(e) => { setCategory(e.target.value); setPage(1) }}
 
-          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green"
+          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
 
         >
 
@@ -1054,7 +1054,7 @@ export default function Products() {
 
                   disabled={createProduct.isPending}
 
-                  className="flex-1 py-2 rounded-lg bg-medium-green hover:bg-deep-green text-white text-sm font-semibold disabled:opacity-60"
+                  className="flex-1 py-2 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60"
 
                 >
 
@@ -1212,7 +1212,7 @@ export default function Products() {
 
                   disabled={updateProduct.isPending}
 
-                  className="flex-1 py-2 rounded-lg bg-medium-green hover:bg-deep-green text-white text-sm font-semibold disabled:opacity-60"
+                  className="flex-1 py-2 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60"
 
                 >
 

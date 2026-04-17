@@ -272,7 +272,7 @@ export default function OrderDetail() {
                 <button
                   type="button"
                   onClick={() => setShowReturn((v) => !v)}
-                  className="shrink-0 px-4 py-2 rounded-lg bg-medium-green hover:bg-deep-green text-white text-sm font-semibold"
+                  className="shrink-0 px-4 py-2 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold"
                 >
                   {showReturn ? 'Hide form' : 'Process return'}
                 </button>

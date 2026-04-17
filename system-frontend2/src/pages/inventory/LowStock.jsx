@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, RefreshCw, Loader2, TrendingDown, Package, ShoppingCart, Search, CheckSquare, Square, XCircle, BarChart2 } from 'lucide-react'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import useAuthStore from '../../store/authStore'
@@ -246,7 +247,7 @@ function BulkBar({ selected, onCreatePOs, onClear }) {
       <div className="ml-auto flex gap-2">
         <button
           onClick={onCreatePOs}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-[#408A71] hover:bg-[#B0E4CC] hover:text-[#091413] rounded-lg transition-all duration-150"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-brand-blue hover:bg-blue-700 text-white rounded-lg transition-all duration-150"
         >
           <ShoppingCart size={12} /> Create POs
         </button>
@@ -262,7 +263,7 @@ function BulkBar({ selected, onCreatePOs, onClear }) {
 }
 
 // Individual stock row
-function StockRow({ item, isSelected, onToggleSelect, isAdmin, onCreatePO }) {
+function StockRow({ item, isSelected, onToggleSelect, isAdmin, onCreatePO, onViewProduct }) {
   const sev    = getSeverity(item)
   const styles = SEVERITY_STYLES[sev]
   const rt = Math.max(item.reorderThreshold ?? 1, 1)
@@ -335,7 +336,10 @@ function StockRow({ item, isSelected, onToggleSelect, isAdmin, onCreatePO }) {
         className="flex gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-150"
         onClick={e => e.stopPropagation()}
       >
-        <button className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-[#408A71] hover:text-[#285A48] dark:hover:text-[#B0E4CC] transition-all">
+        <button
+          onClick={() => onViewProduct(item.productId)}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-[#408A71] hover:text-[#285A48] dark:hover:text-[#B0E4CC] transition-all"
+        >
           View
         </button>
         {isAdmin && (
@@ -368,6 +372,7 @@ function EmptyState() {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 export default function LowStock() {
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
   const isAdmin = useAuthStore((s) => s.isAdmin())
   const staffWid = user?.roleName === 'WAREHOUSE_STAFF' ? String(user?.warehouseId ?? '') : ''
@@ -496,7 +501,14 @@ export default function LowStock() {
     })
   }
 
-  function handleCreatePO(productId) { console.log('Create PO for', productId) }
+  function handleCreatePO(productId) {
+    const reorderQty = 50
+    navigate(`/procurement/purchase-orders/new?productId=${productId}&quantity=${reorderQty}`)
+  }
+
+  function handleViewProduct(productId) {
+    navigate(`/inventory?highlight=${productId}`)
+  }
 
   function handleBulkCreatePOs() {
     console.log('Bulk create POs for', [...selected])
@@ -630,6 +642,7 @@ export default function LowStock() {
                   onToggleSelect={toggleSelect}
                   isAdmin={isAdmin}
                   onCreatePO={handleCreatePO}
+                  onViewProduct={handleViewProduct}
                 />
               ))
             )}

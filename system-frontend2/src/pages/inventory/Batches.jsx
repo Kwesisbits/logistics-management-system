@@ -89,7 +89,7 @@ export default function Batches() {
           <p className="text-sm text-gray-400 mt-0.5">Track batch numbers, quantities and expiry dates</p>
         </div>
         {canEdit && (
-          <button className="flex items-center gap-2 px-4 py-2 bg-medium-green hover:bg-deep-green active:scale-95 text-white text-sm font-semibold rounded-lg transition-all shadow-sm">
+          <button className="flex items-center gap-2 px-4 py-2 bg-brand-blue hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold rounded-lg transition-all shadow-sm">
             <Plus size={15} /> New Batch
             {/* TODO: open CreateBatchModal — POST /inventory/batches */}
             {/* Body: { productId, batchNumber, quantity, manufactureDate?, expiryDate? } */}
@@ -106,13 +106,13 @@ export default function Batches() {
             placeholder="Search batch number, product or SKU..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-medium-green transition-all"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all"
           />
         </div>
         <select
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1) }}
-          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-medium-green"
+          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
         >
           {ALL_STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>

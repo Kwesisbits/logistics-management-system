@@ -139,7 +139,7 @@ export default function Receipts() {
                               type="button"
                               disabled={confirmMut.isPending}
                               onClick={() => confirmMut.mutate(rec.receiptId)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-medium-green px-2.5 py-1 text-xs font-semibold text-white hover:opacity-95 disabled:opacity-50"
+                              className="inline-flex items-center gap-1 rounded-lg bg-brand-blue px-2.5 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                             >
                               <CheckCircle2 size={14} />
                               Confirm
