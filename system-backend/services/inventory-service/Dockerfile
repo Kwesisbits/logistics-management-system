@@ -5,7 +5,7 @@ COPY pom.xml .
 COPY logistics-security-common/pom.xml logistics-security-common/
 COPY services/inventory-service/pom.xml services/inventory-service/
 
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:go-offline -B || true
 
 COPY . .
 
