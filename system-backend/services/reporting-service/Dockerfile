@@ -1,11 +1,13 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
+RUN apk add --no-cache maven
+
 WORKDIR /app
 
 COPY pom.xml .
 COPY logistics-security-common/pom.xml logistics-security-common/
 COPY services/reporting-service/pom.xml services/reporting-service/
 
-RUN mvn dependency:go-offline -B
+RUN mvn dependency:go-offline -B || true
 
 COPY . .
 
