@@ -55,6 +55,9 @@ server:
   port: 8084
 
 management:
+  health:
+    redis:
+      enabled: false
   endpoints:
     web:
       exposure:
