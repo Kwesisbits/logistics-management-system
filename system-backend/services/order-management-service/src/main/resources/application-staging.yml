@@ -25,6 +25,8 @@ spring:
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    listener:
+      auto-startup: false
 
   data:
     redis:
