@@ -23,6 +23,12 @@ public class KafkaStringConsumerConfig {
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
+    @Value("${KAFKA_API_KEY}")
+    private String kafkaApiKey;
+
+    @Value("${KAFKA_API_SECRET}")
+    private String kafkaApiSecret;
+
     @Bean
     public ConsumerFactory<String, String> orderInventoryEventConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -31,6 +37,10 @@ public class KafkaStringConsumerConfig {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put("security.protocol", "SASL_SSL");
+        props.put("sasl.mechanism", "SCRAM-SHA-512");
+        props.put("sasl.jaas.config", "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"" + kafkaApiKey + "\" password=\"" + kafkaApiSecret + "\";");
+        props.put("ssl.endpoint.identification.algorithm", "https");
         return new DefaultKafkaConsumerFactory<>(props);
     }
 

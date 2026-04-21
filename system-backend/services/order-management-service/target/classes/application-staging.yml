@@ -24,7 +24,12 @@ spring:
     baseline-on-migrate: true
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: SCRAM-SHA-512
+      sasl.jaas.config: org.apache.kafka.common.security.scram.ScramLoginModule required username="${KAFKA_API_KEY}" password="${KAFKA_API_SECRET}";
+      ssl.endpoint.identification.algorithm: https
     listener:
       auto-startup: false
     producer:
@@ -40,9 +45,11 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST}
+      host: ${REDIS_HOST:eager-ox-95063.upstash.io}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
 
 server:
   port: 8084
