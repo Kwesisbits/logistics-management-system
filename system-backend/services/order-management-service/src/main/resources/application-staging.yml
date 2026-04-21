@@ -19,6 +19,7 @@ spring:
 
   flyway:
     enabled: true
+    schemas: order_management
     locations: classpath:db/migration
     baseline-on-migrate: true
 

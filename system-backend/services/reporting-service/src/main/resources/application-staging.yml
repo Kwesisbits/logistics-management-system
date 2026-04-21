@@ -19,6 +19,7 @@ spring:
 
   flyway:
     enabled: true
+    schemas: reporting
     locations: classpath:db/migration
     baseline-on-migrate: true
 
