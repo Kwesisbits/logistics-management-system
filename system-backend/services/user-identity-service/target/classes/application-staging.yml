@@ -48,3 +48,5 @@ logging:
 
 paseto:
   secret-key: ${PASETO_SECRET_KEY}
+  access-token-expiry-seconds: ${PASETO_ACCESS_TOKEN_EXPIRY_SECONDS:3600}
+  refresh-token-expiry-seconds: ${PASETO_REFRESH_TOKEN_EXPIRY_SECONDS:604800}
