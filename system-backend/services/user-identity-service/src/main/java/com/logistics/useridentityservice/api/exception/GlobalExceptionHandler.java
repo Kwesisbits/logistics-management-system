@@ -41,8 +41,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handle(Exception ex) {
         log.error("Unhandled exception", ex);
+        String details = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getName();
         return ResponseEntity.status(500)
-            .body(new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred", null));
+            .body(new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred", details));
     }
 
     public record ErrorResponse(String code, String message, Object details) {}
