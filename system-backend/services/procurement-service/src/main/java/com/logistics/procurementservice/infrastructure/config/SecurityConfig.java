@@ -20,6 +20,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @Value("${CORS_ALLOWED_ORIGIN}")
+    private String corsAllowedOrigins;
+
     @Bean
     public PasetoTokenParser pasetoTokenParser(@Value("${paseto.secret-key}") String secretKey) {
         return new PasetoTokenParser(secretKey);
@@ -54,9 +57,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOrigin("http://localhost:5173");
-        config.addAllowedOrigin("http://localhost:5174");
-        config.addAllowedOrigin("http://localhost:3000");
+        for (String origin : corsAllowedOrigins.split(",")) {
+            config.addAllowedOrigin(origin.trim());
+        }
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
         config.setAllowCredentials(true);
