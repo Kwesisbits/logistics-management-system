@@ -23,11 +23,38 @@ public class LocationService {
     private final StorageLocationJpaRepository locationRepository;
     private final WarehouseJpaRepository warehouseRepository;
 
+    private static UUID normalizeToUuid(String input) {
+        if (input == null || input.isBlank()) return null;
+        String digits = input.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) return null;
+        if (digits.length() >= 32) {
+            digits = digits.substring(0, 32);
+        } else {
+            digits = digits + "0".repeat(32 - digits.length());
+        }
+        return UUID.fromString(
+            digits.substring(0, 8) + "-" +
+            digits.substring(8, 12) + "-" +
+            digits.substring(12, 16) + "-" +
+            digits.substring(16, 20) + "-" +
+            digits.substring(20, 32)
+        );
+    }
+
     @Transactional
     public LocationResponse addLocation(UUID warehouseId, CreateLocationRequest request) {
         warehouseRepository.findByWarehouseIdAndCompanyId(warehouseId, LogisticsTenantContext.getCompanyId())
             .orElseThrow(() -> new BusinessException("NOT_FOUND", "Warehouse not found"));
         StorageLocationEntity entity = new StorageLocationEntity();
+        if (request.locationId() != null && !request.locationId().isBlank()) {
+            UUID customId = normalizeToUuid(request.locationId());
+            if (customId != null) {
+                if (locationRepository.existsById(customId)) {
+                    throw new BusinessException("CONFLICT", "Location ID already exists");
+                }
+                entity.setLocationId(customId);
+            }
+        }
         entity.setWarehouseId(warehouseId);
         entity.setZone(request.zone());
         entity.setAisle(request.aisle());

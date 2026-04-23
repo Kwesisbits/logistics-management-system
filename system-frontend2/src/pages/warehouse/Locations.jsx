@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Loader2, MapPin } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Loader2, MapPin, Plus, Save, X } from 'lucide-react'
 import { warehouseApi } from '../../services/axiosInstance'
 import { springPageItems } from '../../utils/apiNormalize'
 
@@ -33,6 +33,33 @@ export default function Locations() {
 
   const list = warehouses ?? []
   const [warehouseId, setWarehouseId] = useState('')
+  const [showCreate, setShowCreate] = useState(false)
+  const queryClient = useQueryClient()
+
+  const [locForm, setLocForm] = useState({
+    locationId: '',
+    zone: 'A',
+    aisle: '01',
+    shelf: '01',
+    bin: '01',
+    locationType: 'PICK',
+    maxCapacity: 100,
+  })
+  const [idError, setIdError] = useState('')
+
+  const validateLocationId = (value) => {
+    const digits = value.replace(/[^0-9]/g, '')
+    if (value && value.includes('-')) {
+      setIdError('Use digits only (no dashes)')
+      return false
+    }
+    if (digits.length > 0 && digits.length < 8) {
+      setIdError('Minimum 8 digits required')
+      return false
+    }
+    setIdError('')
+    return true
+  }
 
   const firstId = list[0]?.warehouseId
   const effectiveWid = warehouseId || firstId
@@ -51,11 +78,45 @@ export default function Locations() {
 
   const whName = useMemo(() => list.find((w) => String(w.warehouseId) === String(effectiveWid))?.name, [list, effectiveWid])
 
+  const createLocation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        zone: locForm.zone.trim() || 'A',
+        aisle: locForm.aisle.trim() || '01',
+        shelf: locForm.shelf.trim() || '01',
+        bin: locForm.bin.trim() || '01',
+        locationType: locForm.locationType.trim() || 'PICK',
+        maxCapacity: Math.max(1, Number(locForm.maxCapacity) || 100),
+        locationId: locForm.locationId.trim() || null,
+      }
+      const res = await warehouseApi.post(`/locations/${effectiveWid}`, payload)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locations', effectiveWid] })
+      setShowCreate(false)
+      setLocForm({ locationId: '', zone: 'A', aisle: '01', shelf: '01', bin: '01', locationType: 'PICK', maxCapacity: 100 })
+    },
+  })
+
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-dark-base dark:text-white">Storage locations</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Bins and zones per warehouse ({whName ?? '—'})</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-dark-base dark:text-white">Storage locations</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Bins and zones per warehouse ({whName ?? '—'})</p>
+          </div>
+          {effectiveWid && (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-medium-green text-white rounded text-sm hover:bg-green-700"
+            >
+              <Plus size={16} /> Add
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3 items-center">
@@ -89,8 +150,88 @@ export default function Locations() {
         </div>
       )}
 
-      {!isLoading && !isError && (
-        <div className="app-card overflow-hidden">
+      {!isLoading && !isError && !list.length && (
+        <div className="app-card p-6 flex flex-col items-center gap-3">
+          <MapPin size={32} className="text-gray-300" />
+          <p className="text-gray-500 text-center">No warehouses found. Create a warehouse first to add locations.</p>
+        </div>
+      )}
+
+      {showCreate && (
+        <div className="app-card p-4">
+          <h3 className="font-medium mb-3">Add Storage Location</h3>
+          <div className="grid grid-cols-3 gap-3">
+            <input
+              value={locForm.locationId}
+              onChange={(e) => {
+                setLocForm((prev) => ({ ...prev, locationId: e.target.value }))
+                validateLocationId(e.target.value)
+              }}
+              placeholder="Custom ID (8+ digits)"
+              className="col-span-3 px-3 py-2 border rounded font-mono text-sm"
+            />
+            {idError && <p className="col-span-3 text-red-500 text-sm">{idError}</p>}
+            <input
+              value={locForm.zone}
+              onChange={(e) => setLocForm((prev) => ({ ...prev, zone: e.target.value }))}
+              placeholder="Zone (A)"
+              className="px-3 py-2 border rounded"
+            />
+            <input
+              value={locForm.aisle}
+              onChange={(e) => setLocForm((prev) => ({ ...prev, aisle: e.target.value }))}
+              placeholder="Aisle (01)"
+              className="px-3 py-2 border rounded"
+            />
+            <input
+              value={locForm.shelf}
+              onChange={(e) => setLocForm((prev) => ({ ...prev, shelf: e.target.value }))}
+              placeholder="Shelf"
+              className="px-3 py-2 border rounded"
+            />
+            <input
+              value={locForm.bin}
+              onChange={(e) => setLocForm((prev) => ({ ...prev, bin: e.target.value }))}
+              placeholder="Bin"
+              className="px-3 py-2 border rounded"
+            />
+            <select
+              value={locForm.locationType}
+              onChange={(e) => setLocForm((prev) => ({ ...prev, locationType: e.target.value }))}
+              className="px-3 py-2 border rounded"
+            >
+              <option value="PICK">PICK</option>
+              <option value="BULK">BULK</option>
+              <option value="OVERFLOW">OVERFLOW</option>
+              <option value="QUARANTINE">QUARANTINE</option>
+            </select>
+            <input
+              type="number"
+              value={locForm.maxCapacity}
+              onChange={(e) => setLocForm((prev) => ({ ...prev, maxCapacity: Number(e.target.value) }))}
+              placeholder="Capacity"
+              className="px-3 py-2 border rounded"
+            />
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              type="button"
+              onClick={() => setShowCreate(false)}
+              className="px-4 py-2 border rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => createLocation.mutate()}
+              disabled={createLocation.isPending}
+              className="px-4 py-2 bg-medium-green text-white rounded hover:bg-green-700 disabled:opacity-50"
+            >
+              {createLocation.isPending ? <Loader2 className="animate-spin" size={16} /> : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

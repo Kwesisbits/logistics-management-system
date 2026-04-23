@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, MapPin, Package, Pencil, Save, X } from 'lucide-react'
+import { Loader2, MapPin, Package, Pencil, Plus, Save, X } from 'lucide-react'
 import { warehouseApi } from '../../services/axiosInstance'
 import { springPageItems } from '../../utils/apiNormalize'
 
@@ -15,6 +15,7 @@ export default function Warehouses() {
     staleTime: 30_000,
   })
 
+  const [showCreate, setShowCreate] = useState(false)
   const rows = data ?? []
   const [editingId, setEditingId] = useState('')
   const [form, setForm] = useState({
@@ -34,6 +35,18 @@ export default function Warehouses() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['warehouses'] })
       setEditingId('')
+    },
+  })
+
+  const createWarehouse = useMutation({
+    mutationFn: async (payload) => {
+      const res = await warehouseApi.post('/warehouses', payload)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] })
+      setShowCreate(false)
+      setForm({ name: '', street: '', city: '', country: '', type: '', capacity: 1 })
     },
   })
 
@@ -68,12 +81,110 @@ export default function Warehouses() {
     })
   }
 
+  async function saveCreate() {
+    await createWarehouse.mutateAsync({
+      name: form.name.trim(),
+      street: form.street.trim(),
+      city: form.city.trim(),
+      country: form.country.trim(),
+      type: form.type.trim() || 'MAIN',
+      capacity: Math.max(1, Number(form.capacity) || 1),
+    })
+  }
+
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-dark-base dark:text-white">Warehouses</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Sites and capacity from the warehouse service</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-dark-base dark:text-white">Warehouses</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Sites and capacity from the warehouse service</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-medium-green text-white rounded text-sm hover:bg-green-700"
+          >
+            <Plus size={16} /> Add
+          </button>
+        </div>
       </div>
+
+      {rows.length === 0 && !isLoading && (
+        <div className="app-card p-6 flex flex-col items-center gap-3">
+          <MapPin size={32} className="text-gray-300" />
+          <p className="text-gray-500 text-center">No warehouses found. Add your first warehouse to get started.</p>
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-medium-green text-white rounded hover:bg-green-700"
+          >
+            <Plus size={16} /> Add Warehouse
+          </button>
+        </div>
+      )}
+
+      {showCreate && (
+        <div className="app-card p-4">
+          <h3 className="font-medium mb-3">Add New Warehouse</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              value={form.name}
+              onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="Warehouse Name *"
+              className="col-span-2 px-3 py-2 border rounded"
+            />
+            <input
+              value={form.type}
+              onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
+              placeholder="Type (e.g. MAIN, SATELLITE)"
+              className="px-3 py-2 border rounded"
+            />
+            <input
+              type="number"
+              value={form.capacity}
+              onChange={(e) => setForm((prev) => ({ ...prev, capacity: Number(e.target.value) }))}
+              placeholder="Capacity"
+              className="px-3 py-2 border rounded"
+            />
+            <input
+              value={form.street}
+              onChange={(e) => setForm((prev) => ({ ...prev, street: e.target.value }))}
+              placeholder="Street Address"
+              className="col-span-2 px-3 py-2 border rounded"
+            />
+            <input
+              value={form.city}
+              onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
+              placeholder="City"
+              className="px-3 py-2 border rounded"
+            />
+            <input
+              value={form.country}
+              onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
+              placeholder="Country"
+              className="px-3 py-2 border rounded"
+            />
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              type="button"
+              onClick={() => setShowCreate(false)}
+              className="px-4 py-2 border rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={saveCreate}
+              disabled={!form.name.trim() || createWarehouse.isPending}
+              className="px-4 py-2 bg-medium-green text-white rounded hover:bg-green-700 disabled:opacity-50"
+            >
+              {createWarehouse.isPending ? <Loader2 className="animate-spin" size={16} /> : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="app-card p-12 flex flex-col items-center gap-2">
