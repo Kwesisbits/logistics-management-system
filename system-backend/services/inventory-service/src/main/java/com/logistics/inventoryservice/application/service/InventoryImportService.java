@@ -103,6 +103,7 @@ public class InventoryImportService {
 
         if (parsedRows.isEmpty()) {
             return new InventoryImportResult(0, 0, 0, List.of("No valid rows found in CSV. Check format: sku, name, category, unit_of_measure, unit_cost, reorder_threshold, quantity_on_hand, location_id"));
+        }
 
         // Full import replace: clear dependent stock/batches so imported products become source of truth.
         batchRepository.deleteByCompanyId(companyId);
