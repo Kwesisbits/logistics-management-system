@@ -169,13 +169,4 @@ Configured automatically via environment variables in Vercel project settings.
 - **Database**: Single PostgreSQL instance with multi-schema
 ## License
 Proprietary - All rights reserved.
-Thinking: The user wants me to create a comprehensive README.md for the project. I've written it based on what I've discovered in the codebase. Let me verify it was written correctly.
-Done. Created a comprehensive README.md documenting:
-- Architecture diagram (frontend/backend/data layers)
-- Tech stack (React 19, Spring Boot 3.3, Java 21)
-- All 7 microservices with ports
-- Security (PASETO tokens, RBAC)
-- Multi-schema database design
-- RAG system (as functional)
-- Setup instructions
-- Deployment info
+
