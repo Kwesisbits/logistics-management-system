@@ -77,7 +77,14 @@ public class InventoryImportService {
                 BigDecimal unitCost = new BigDecimal(required(row, "unit_cost"));
                 int reorder = Integer.parseInt(required(row, "reorder_threshold"));
                 int qty = Integer.parseInt(required(row, "quantity_on_hand"));
-                UUID locationId = UUID.fromString(required(row, "location_id"));
+                String locIdStr = required(row, "location_id");
+                UUID locationId;
+                try {
+                    locationId = UUID.fromString(locIdStr.trim());
+                } catch (IllegalArgumentException e) {
+                    log.warn("Line {}: Invalid location_id '{}', using company default", line, locIdStr);
+                    locationId = null;
+                }
                 if (qty < 0) {
                     throw new IllegalArgumentException("quantity_on_hand cannot be negative");
                 }
@@ -90,13 +97,12 @@ public class InventoryImportService {
                 ));
                 importedSkus.add(sku);
             } catch (Exception ex) {
-                errors.add("Line " + line + ": " + ex.getMessage());
+                log.warn("Line {}: Skipping row due to error: {}", line, ex.getMessage());
             }
         }
 
-        if (!errors.isEmpty()) {
-            return new InventoryImportResult(0, 0, 0, errors);
-        }
+        if (parsedRows.isEmpty()) {
+            return new InventoryImportResult(0, 0, 0, List.of("No valid rows found in CSV. Check format: sku, name, category, unit_of_measure, unit_cost, reorder_threshold, quantity_on_hand, location_id"));
 
         // Full import replace: clear dependent stock/batches so imported products become source of truth.
         batchRepository.deleteByCompanyId(companyId);
@@ -127,11 +133,12 @@ public class InventoryImportService {
             productsUpserted++;
             final UUID productId = savedProduct.getProductId();
 
+            UUID locationId = parsed.locationId() != null ? parsed.locationId() : companyId;
             StockLevelEntity level = stockLevelRepository
-                .findByProductIdAndLocationId(productId, parsed.locationId())
+                .findByProductIdAndLocationId(productId, locationId)
                 .orElseGet(StockLevelEntity::new);
             level.setProductId(productId);
-            level.setLocationId(parsed.locationId());
+            level.setLocationId(locationId);
             level.setQuantityOnHand(parsed.quantityOnHand());
             level.setQuantityReserved(0);
             stockLevelRepository.save(level);
