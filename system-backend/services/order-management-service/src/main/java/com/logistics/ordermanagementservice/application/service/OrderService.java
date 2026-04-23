@@ -86,9 +86,16 @@ public class OrderService {
             throw new BusinessException("VALIDATION_ERROR", "Invalid priority: " + priority);
         }
 
+        // Demo mode: Accept any valid UUIDs - don't validate existence
+        // Real-world would check customerId and warehouseId exist
+        UUID customerId = request.customerId();
+        UUID warehouseId = request.warehouseId();
+        
+        log.info("Creating order for customerId: {}, warehouseId: {}", customerId, warehouseId);
+        
         OrderEntity order = new OrderEntity();
-        order.setCustomerId(request.customerId());
-        order.setWarehouseId(request.warehouseId());
+        order.setCustomerId(customerId);
+        order.setWarehouseId(warehouseId);
         order.setCompanyId(tenantCompanyId());
         order.setStatus("DRAFT");
         order.setPriority(priority);

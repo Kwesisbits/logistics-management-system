@@ -8,6 +8,7 @@ import com.logistics.inventoryservice.infrastructure.persistence.repository.Prod
 import com.logistics.inventoryservice.infrastructure.persistence.repository.StockLevelJpaRepository;
 import com.logistics.inventoryservice.infrastructure.security.InventoryTenant;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InventoryImportService {
@@ -46,6 +48,14 @@ public class InventoryImportService {
     @Transactional
     public InventoryImportResult importFile(MultipartFile file, String format) throws Exception {
         UUID companyId = InventoryTenant.currentCompanyId();
+        
+        log.info("Starting import for companyId: {}, file: {}", companyId, file.getOriginalFilename());
+        
+        if (companyId == null) {
+            log.error("Company ID is NULL during import! Tenant context not set.");
+            return new InventoryImportResult(0, 0, 0, List.of("Error: Company context not available. Please re-login and try again."));
+        }
+        
         String lower = format == null ? "csv" : format.toLowerCase(Locale.ROOT);
         List<Map<String, String>> rows = switch (lower) {
             case "xlsx", "excel" -> parseExcel(file);
