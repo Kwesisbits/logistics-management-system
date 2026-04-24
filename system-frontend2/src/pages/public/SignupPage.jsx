@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Lock, ArrowLeft } from 'lucide-react'
 import NetivLogo from '../../components/marketing/NetivLogo'
-import FloatingThemeToggle from '../../components/FloatingThemeToggle'
+import ThemeToggle from '../../components/ThemeToggle'
 import { publicIdentityApi } from '../../services/publicIdentityApi'
 import useAuthStore from '../../store/authStore'
 
@@ -166,8 +166,10 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row dark:bg-gray-900">
-      <FloatingThemeToggle />
       <div className="lg:w-1/2 bg-brand-navy text-white flex flex-col p-8 lg:p-12">
+        <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+          <ThemeToggle />
+        </div>
         <NetivLogo wordClass="text-xl font-semibold text-white" />
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full py-10">
           <h2 className="text-3xl font-bold mb-2">Join Netiv</h2>

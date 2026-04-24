@@ -103,7 +103,7 @@ export default function Warehouses() {
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-medium-green text-white rounded text-sm hover:bg-green-700"
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-blue text-white rounded text-sm hover:bg-blue-700"
           >
             <Plus size={16} /> Add
           </button>
@@ -117,7 +117,7 @@ export default function Warehouses() {
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-medium-green text-white rounded hover:bg-green-700"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-700"
           >
             <Plus size={16} /> Add Warehouse
           </button>
@@ -178,7 +178,7 @@ export default function Warehouses() {
               type="button"
               onClick={saveCreate}
               disabled={!form.name.trim() || createWarehouse.isPending}
-              className="px-4 py-2 bg-medium-green text-white rounded hover:bg-green-700 disabled:opacity-50"
+              className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
               {createWarehouse.isPending ? <Loader2 className="animate-spin" size={16} /> : 'Save'}
             </button>
