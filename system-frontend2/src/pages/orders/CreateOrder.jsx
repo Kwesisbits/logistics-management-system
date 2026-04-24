@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -18,7 +18,7 @@ export default function CreateOrder() {
   const isStaff  = user?.roleName === 'WAREHOUSE_STAFF'
   const queryClient = useQueryClient()
 
-  // Form fields — customerId must be a UUID (see CreateOrderRequest)
+  // Form fields ΓÇö customerId must be a UUID (see CreateOrderRequest)
   const [customerId,       setCustomerId]       = useState('')
   const [warehouseId,      setWarehouseId]      = useState(isStaff ? String(user?.warehouseId ?? '') : '')
   const [priority,         setPriority]         = useState('STANDARD')
@@ -144,7 +144,6 @@ export default function CreateOrder() {
       const apiErr = err?.apiError ?? err?.response?.data
       const code = apiErr?.code
       const msg = apiErr?.message || (err?.response?.data?.details ? JSON.stringify(err.response.data.details) : null)
-      
       if (code === 'INSUFFICIENT_STOCK') {
         setApiError('Not enough stock for one or more selected items.')
       } else if (code === 'VALIDATION_ERROR') {
@@ -182,20 +181,215 @@ export default function CreateOrder() {
 
         {/* Customer + Warehouse row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-<div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">
+              Customer ID (UUID) <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={customerId}
+              onChange={(e) => setCustomerId(e.target.value)}
+              placeholder={user?.userId ? user.userId : 'Enter customer ID'}
+              className={`w-full px-3 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
+                ${errors.customerId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+            />
+            {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
+          </div>
+
+          <div>
             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">
               Warehouse <span className="text-red-400">*</span>
             </label>
+            {isStaff ? (
+              <input
+                type="text"
+                value={warehouses.find((w) => String(w.warehouseId) === String(warehouseId))?.name ?? warehouseId}
+                readOnly
+                className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              />
+            ) : (
+              <select
+                value={warehouseId}
+                onChange={(e) => setWarehouseId(e.target.value)}
+                className={`w-full px-3 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
+                  ${errors.warehouseId ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+              >
+                <option value="">Select warehouse</option>
+                {warehouses.map((w) => (
+                  <option key={String(w.warehouseId)} value={String(w.warehouseId)}>{w.name}</option>
+                ))}
+              </select>
+            )}
+            {errors.warehouseId && <p className="text-xs text-red-500 mt-1">{errors.warehouseId}</p>}
+          </div>
+        </div>
+
+        {/* Priority + Expected Delivery */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">
+              Priority <span className="text-red-400">*</span>
+            </label>
             <select
-              value={warehouseId}
-              onChange={(e) => setWarehouseId(e.target.value)}
-              className="app-input w-full"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
             >
-              <option value="">Select warehouse</option>
-              {warehouses.map((w) => (
-                <option key={w.warehouseId} value={w.warehouseId}>
-                  {w.name || w.warehouseId}
-                </option>
-              ))}
+              <option value="STANDARD">Standard</option>
+              <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
             </select>
           </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">
+              Expected Delivery
+            </label>
+            <input
+              type="date"
+              value={expectedDelivery}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setExpectedDelivery(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue"
+            />
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Optional notes for this order..."
+            rows={2}
+            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue resize-none"
+          />
+        </div>
+
+        {/* Line items */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Line Items <span className="text-red-400">*</span>
+            </label>
+            <button
+              onClick={addLine}
+              className="flex items-center gap-1.5 text-xs font-medium text-medium-green hover:text-deep-green transition-colors"
+            >
+              <Plus size={13} /> Add Line
+            </button>
+          </div>
+
+          {errors.lines && <p className="text-xs text-red-500 mb-2">{errors.lines}</p>}
+
+          <div className="space-y-2">
+            {/* Column headers */}
+            <div className="grid grid-cols-12 gap-2 px-1">
+              <span className="col-span-5 text-xs text-gray-400">Product</span>
+              <span className="col-span-2 text-xs text-gray-400">Qty</span>
+              <span className="col-span-3 text-xs text-gray-400">Unit Price (GHS)</span>
+              <span className="col-span-1 text-xs text-gray-400 text-right">Total</span>
+              <span className="col-span-1" />
+            </div>
+
+            {lines.map((line, i) => {
+              const lineTotal = Number(line.quantity) * Number(line.unitPrice)
+              return (
+                <div key={line.id} className="grid grid-cols-12 gap-2 items-start">
+                  <div className="col-span-5">
+                    <select
+                      value={line.productId}
+                      onChange={(e) => updateLine(line.id, 'productId', e.target.value)}
+                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
+                        ${errors[`line_${i}_product`] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+                    >
+                      <option value="">Select product</option>
+                      {products.map((p) => (
+                        <option key={String(p.productId)} value={String(p.productId)}>{p.name}</option>
+                      ))}
+                    </select>
+                    {errors[`line_${i}_product`] && (
+                      <p className="text-xs text-red-500 mt-0.5">{errors[`line_${i}_product`]}</p>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={line.quantity}
+                      onChange={(e) => updateLine(line.id, 'quantity', e.target.value)}
+                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
+                        ${errors[`line_${i}_qty`] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.unitPrice}
+                      onChange={(e) => updateLine(line.id, 'unitPrice', e.target.value)}
+                      className={`w-full px-2 py-2 text-sm border rounded-lg bg-light-bg dark:bg-gray-900 text-dark-base dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all
+                        ${errors[`line_${i}_price`] ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
+                    />
+                  </div>
+                  <div className="col-span-1 text-right pt-2">
+                    <span className="text-xs font-semibold text-dark-base dark:text-white">
+                      {lineTotal.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="col-span-1 flex justify-end pt-1.5">
+                    {lines.length > 1 && (
+                      <button
+                        onClick={() => removeLine(line.id)}
+                        className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Running total */}
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+            <div className="text-right">
+              <p className="text-xs text-gray-400 mb-0.5">Running Total</p>
+              <p className="text-xl font-bold text-dark-base dark:text-white">
+                GHS {runningTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* API error */}
+        {apiError && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-900/40">
+            <AlertTriangle size={15} className="text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-600 dark:text-red-300">{apiError}</p>
+          </div>
+        )}
+
+        {/* Submit */}
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={() => navigate('/orders')}
+            className="flex-1 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-light-bg dark:hover:bg-gray-700 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 py-2.5 rounded-lg bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          >
+            {submitting && <Loader2 size={14} className="animate-spin" />}
+            {submitting ? 'Creating...' : 'Create Order'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
