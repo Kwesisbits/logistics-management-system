@@ -61,7 +61,11 @@ public class OrderService {
     private final OrderFulfillmentSagaOrchestrator sagaOrchestrator;
 
     private static UUID tenantCompanyId() {
-        return LogisticsTenantContext.getCompanyId();
+        UUID cid = LogisticsTenantContext.getCompanyId();
+        if (cid == null) {
+            throw new BusinessException("VALIDATION_ERROR", "No company context available");
+        }
+        return cid;
     }
 
     private OrderEntity requireOrderForTenant(UUID orderId) {
@@ -88,10 +92,12 @@ public class OrderService {
             throw new BusinessException("VALIDATION_ERROR", "Invalid priority: " + priority);
         }
 
-        // Demo mode: Accept any valid UUIDs - don't validate existence
-        // Real-world would check customerId and warehouseId exist
-        UUID customerId = request.customerId();
-        UUID warehouseId = request.warehouseId();
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new BusinessException("VALIDATION_ERROR", "At least one order item is required");
+        }
+
+        UUID customerId = parseToUUID(request.customerId(), "customer");
+        UUID warehouseId = parseToUUID(request.warehouseId(), "warehouse");
         
         log.info("Creating order for customerId: {}, warehouseId: {}", customerId, warehouseId);
         
@@ -108,7 +114,7 @@ public class OrderService {
         for (CreateOrderRequest.OrderItemRequest line : request.items()) {
             OrderItemEntity item = new OrderItemEntity();
             item.setOrder(order);
-            item.setProductId(line.productId());
+            item.setProductId(parseToUUID(line.productId(), "product"));
             item.setQuantity(line.quantity());
             item.setUnitPrice(line.unitPrice().setScale(2, RoundingMode.HALF_UP));
             order.getItems().add(item);
@@ -121,6 +127,17 @@ public class OrderService {
 
         OrderEntity saved = orderRepository.save(order);
         return OrderResponse.from(saved);
+    }
+
+    private UUID parseToUUID(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new BusinessException("VALIDATION_ERROR", field + "Id is required");
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException e) {
+            return UUID.nameUUIDFromBytes((field + ":" + value).getBytes());
+        }
     }
 
     @Transactional(readOnly = true)

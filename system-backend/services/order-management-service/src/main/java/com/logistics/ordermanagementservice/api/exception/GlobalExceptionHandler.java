@@ -16,6 +16,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handle(BusinessException ex) {
+        log.warn("Business exception: code={}, message={}", ex.getCode(), ex.getMessage());
         int status = switch (ex.getCode()) {
             case "NOT_FOUND" -> 404;
             case "CONFLICT", "INSUFFICIENT_STOCK", "INVALID_STATE_TRANSITION", "INVALID_STATE" -> 409;
@@ -25,7 +26,7 @@ public class GlobalExceptionHandler {
             default -> 400;
         };
         return ResponseEntity.status(status)
-            .body(new ErrorResponse(ex.getCode(), ex.getMessage(), null));
+            .body(new ErrorResponse(ex.getCode(), ex.getMessage(), Map.of()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -33,16 +34,17 @@ public class GlobalExceptionHandler {
         Map<String, String> fieldErrors = ex.getBindingResult()
             .getFieldErrors().stream()
             .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage));
+        log.warn("Validation error: {}", fieldErrors);
         return ResponseEntity.status(422)
             .body(new ErrorResponse("VALIDATION_ERROR", "Request validation failed", fieldErrors));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handle(Exception ex) {
-        log.error("Unhandled exception", ex);
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
         return ResponseEntity.status(500)
-            .body(new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred", null));
+            .body(new ErrorResponse("INTERNAL_ERROR", ex.getMessage(), Map.of()));
     }
 
-    public record ErrorResponse(String code, String message, Object details) {}
+    public record ErrorResponse(String code, String message, Map<String, Object> details) {}
 }

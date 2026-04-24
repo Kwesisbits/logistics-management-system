@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateOrderRequest(
-    @NotNull UUID customerId,
-    @NotNull UUID warehouseId,
+    String customerId,
+    String warehouseId,
     String priority,
     LocalDate expectedDelivery,
     String notes,
@@ -19,7 +19,7 @@ public record CreateOrderRequest(
 ) {
 
     public record OrderItemRequest(
-        @NotNull UUID productId,
+        String productId,
         int quantity,
         @NotNull BigDecimal unitPrice
     ) {}
