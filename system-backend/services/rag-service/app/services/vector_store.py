@@ -10,8 +10,6 @@ class VectorStoreReader:
         url = settings.database_url
         if url.startswith("jdbc:"):
             url = url[5:]
-        if url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
-            url = url.replace("postgresql://", "postgresql+asyncpg://")
         return url
 
     async def _get_pool(self):
