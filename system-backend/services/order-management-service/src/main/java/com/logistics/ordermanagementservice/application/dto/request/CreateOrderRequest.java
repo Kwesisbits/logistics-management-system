@@ -19,8 +19,36 @@ public record CreateOrderRequest(
 ) {
 
     public record OrderItemRequest(
-        String productId,
+        @NotNull UUID productId,
         int quantity,
         @NotNull BigDecimal unitPrice
     ) {}
+
+    public UUID parsedCustomerId() {
+        if (customerId == null || customerId.isBlank()) return null;
+        try {
+            return UUID.fromString(customerId);
+        } catch (IllegalArgumentException e) {
+            try {
+                int num = Integer.parseInt(customerId.trim());
+                return UUID.fromString("00000000-0000-0000-0000-" + String.format("%012d", num));
+            } catch (NumberFormatException nfe) {
+                return UUID.nameUUIDFromBytes(("customer:" + customerId).getBytes());
+            }
+        }
+    }
+
+    public UUID parsedWarehouseId() {
+        if (warehouseId == null || warehouseId.isBlank()) return null;
+        try {
+            return UUID.fromString(warehouseId);
+        } catch (IllegalArgumentException e) {
+            try {
+                int num = Integer.parseInt(warehouseId.trim());
+                return UUID.fromString("00000000-0000-0000-0000-" + String.format("%012d", num));
+            } catch (NumberFormatException nfe) {
+                return UUID.nameUUIDFromBytes(("warehouse:" + warehouseId).getBytes());
+            }
+        }
+    }
 }

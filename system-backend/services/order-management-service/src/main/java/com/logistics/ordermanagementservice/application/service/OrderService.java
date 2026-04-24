@@ -96,8 +96,11 @@ public class OrderService {
             throw new BusinessException("VALIDATION_ERROR", "At least one order item is required");
         }
 
-        UUID customerId = parseToUUID(request.customerId(), "customer");
-        UUID warehouseId = parseToUUID(request.warehouseId(), "warehouse");
+        UUID customerId = request.parsedCustomerId();
+        UUID warehouseId = request.parsedWarehouseId();
+        
+        if (customerId == null) throw new BusinessException("VALIDATION_ERROR", "customerId is required");
+        if (warehouseId == null) throw new BusinessException("VALIDATION_ERROR", "warehouseId is required");
         
         log.info("Creating order for customerId: {}, warehouseId: {}", customerId, warehouseId);
         
@@ -114,7 +117,7 @@ public class OrderService {
         for (CreateOrderRequest.OrderItemRequest line : request.items()) {
             OrderItemEntity item = new OrderItemEntity();
             item.setOrder(order);
-            item.setProductId(parseToUUID(line.productId(), "product"));
+            item.setProductId(line.productId());
             item.setQuantity(line.quantity());
             item.setUnitPrice(line.unitPrice().setScale(2, RoundingMode.HALF_UP));
             order.getItems().add(item);
@@ -127,17 +130,6 @@ public class OrderService {
 
         OrderEntity saved = orderRepository.save(order);
         return OrderResponse.from(saved);
-    }
-
-    private UUID parseToUUID(String value, String field) {
-        if (value == null || value.isBlank()) {
-            throw new BusinessException("VALIDATION_ERROR", field + "Id is required");
-        }
-        try {
-            return UUID.fromString(value);
-        } catch (IllegalArgumentException e) {
-            return UUID.nameUUIDFromBytes((field + ":" + value).getBytes());
-        }
     }
 
     @Transactional(readOnly = true)
