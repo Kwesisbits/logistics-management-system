@@ -115,9 +115,13 @@ public class OrderService {
 
         BigDecimal total = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         for (CreateOrderRequest.OrderItemRequest line : request.items()) {
+            UUID productId = line.parsedProductId();
+            if (productId == null) {
+                throw new BusinessException("VALIDATION_ERROR", "productId is required for each item");
+            }
             OrderItemEntity item = new OrderItemEntity();
             item.setOrder(order);
-            item.setProductId(line.productId());
+            item.setProductId(productId);
             item.setQuantity(line.quantity());
             item.setUnitPrice(line.unitPrice().setScale(2, RoundingMode.HALF_UP));
             order.getItems().add(item);

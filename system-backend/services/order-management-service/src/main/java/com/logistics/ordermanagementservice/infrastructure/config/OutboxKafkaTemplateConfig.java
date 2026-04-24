@@ -15,24 +15,18 @@ import java.util.Map;
 @Configuration
 public class OutboxKafkaTemplateConfig {
 
-    @Value("${spring.kafka.bootstrap-servers:}")
+    @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
     @Bean
     public ProducerFactory<String, String> stringProducerFactory() {
         Map<String, Object> config = new HashMap<>();
-        
-        String servers = (bootstrapServers != null && !bootstrapServers.isBlank()) 
-            ? bootstrapServers 
-            : "localhost:9092";
-        
-        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.ACKS_CONFIG, "all");
-        config.put(ProducerConfig.RETRIES_CONFIG, 3);
-        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+        config.put(ProducerConfig.RETRIES_CONFIG, 0);
+        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, false);
         return new DefaultKafkaProducerFactory<>(config);
     }
 

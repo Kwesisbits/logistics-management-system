@@ -156,7 +156,7 @@ const navTree = [
         id: 'settings',
         label: 'Settings',
         icon: Settings,
-        disabled: true,
+        path: '/settings',
         roles: ['SUPER_ADMIN', 'COMPANY_ADMIN'],
       },
     ],

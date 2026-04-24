@@ -392,8 +392,8 @@ function Dashboard() {
   const { data: lowStockItems = [] } = useQuery({
     queryKey: ['dashboard', 'low-stock', warehouseId],
     queryFn: async () => {
-      const r = await inventoryApi.get('/stock/low-stock', { params: { warehouseId } })
-      return Array.isArray(r.data) ? r.data : (r.data?.data ?? r.data?.items ?? [])
+      const r = await inventoryApi.get('/stock/low-stock')
+      return Array.isArray(r.data) ? r.data : []
     },
     refetchInterval: 60_000,
     staleTime: 0,

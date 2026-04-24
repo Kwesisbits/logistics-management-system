@@ -15,13 +15,16 @@
       (function () {
         try {
           var t = localStorage.getItem('logistics-theme')
-          if (t === 'dark') document.documentElement.classList.add('dark')
-          else if (t !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark')
+          if (t === 'light') {
+            document.documentElement.classList.remove('dark')
+          } else {
+            document.documentElement.classList.add('dark')
+          }
         } catch (e) {}
       })()
     </script>
-    <script type="module" crossorigin src="/assets/index-ufJZr1BV.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-Bou9aPxh.css">
+    <script type="module" crossorigin src="/assets/index-DoHtxdgZ.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Ci15fyzP.css">
   </head>
   <body>
     <div id="root"></div>

@@ -1,6 +1,8 @@
 package com.logistics.useridentityservice.api.controller;
 
+import com.logistics.useridentityservice.application.dto.request.ChangePasswordRequest;
 import com.logistics.useridentityservice.application.dto.request.CreateUserRequest;
+import com.logistics.useridentityservice.application.dto.request.UpdateProfileRequest;
 import com.logistics.useridentityservice.application.dto.request.UpdateUserRoleRequest;
 import com.logistics.useridentityservice.application.dto.response.UserResponse;
 import com.logistics.useridentityservice.application.service.UserManagementService;
@@ -47,6 +49,27 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> getUser(@PathVariable UUID userId) {
         return ResponseEntity.ok(userManagementService.getUserById(userId));
+    }
+
+    @PatchMapping("/{userId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponse> updateProfile(
+        @PathVariable UUID userId,
+        @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        return ResponseEntity.ok(
+            userManagementService.updateOwnProfile(userId, request.firstName(), request.lastName())
+        );
+    }
+
+    @PostMapping("/{userId}/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> changePassword(
+        @PathVariable UUID userId,
+        @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        userManagementService.changePassword(userId, request.currentPassword(), request.newPassword());
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{userId}/deactivate")

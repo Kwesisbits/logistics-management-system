@@ -222,7 +222,7 @@ export default function SignupPage() {
                 <label className="text-xs font-medium text-slate-600 dark:text-gray-300">First name *</label>
                 <input
                   {...register('firstName')}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-white dark:text-gray-900"
                 />
                 {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName.message}</p>}
               </div>
@@ -230,7 +230,7 @@ export default function SignupPage() {
                 <label className="text-xs font-medium text-slate-600 dark:text-gray-300">Last name *</label>
                 <input
                   {...register('lastName')}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-white dark:text-gray-900"
                 />
                 {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName.message}</p>}
               </div>
@@ -240,7 +240,7 @@ export default function SignupPage() {
               <label className="text-xs font-medium text-slate-600 dark:text-gray-300">Company name *</label>
               <input
                 {...register('companyName')}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-white dark:text-gray-900"
               />
               {errors.companyName && <p className="mt-1 text-xs text-red-600">{errors.companyName.message}</p>}
             </div>
@@ -252,7 +252,7 @@ export default function SignupPage() {
                 placeholder="you@yourcompany.com"
                 autoComplete="email"
                 {...register('email')}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-white dark:text-gray-900"
               />
               {errors.email && (
                 <p className="mt-1 text-xs text-red-600">
@@ -292,7 +292,7 @@ export default function SignupPage() {
                   type={showPw ? 'text' : 'password'}
                   autoComplete="new-password"
                   {...register('password')}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-white dark:text-gray-900"
                 />
                 <button
                   type="button"
@@ -321,7 +321,7 @@ export default function SignupPage() {
                   type={showPw2 ? 'text' : 'password'}
                   autoComplete="new-password"
                   {...register('confirmPassword')}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-white dark:text-gray-900"
                 />
                 <button
                   type="button"

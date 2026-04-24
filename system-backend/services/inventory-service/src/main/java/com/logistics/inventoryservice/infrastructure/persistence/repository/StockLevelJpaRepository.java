@@ -25,7 +25,7 @@ public interface StockLevelJpaRepository extends JpaRepository<StockLevelEntity,
     List<StockLevelEntity> findAllByProductId(UUID productId);
 
     @Query("SELECT s FROM StockLevelEntity s JOIN ProductEntity p ON s.productId = p.productId " +
-           "WHERE s.quantityAvailable <= p.reorderThreshold AND p.isActive = true AND p.companyId = :companyId")
+           "WHERE (s.quantityOnHand - s.quantityReserved) <= p.reorderThreshold AND p.isActive = true AND p.companyId = :companyId")
     List<StockLevelEntity> findAllBelowReorderThreshold(@Param("companyId") UUID companyId);
 
     @Query("SELECT s FROM StockLevelEntity s JOIN ProductEntity p ON s.productId = p.productId WHERE p.companyId = :companyId")

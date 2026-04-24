@@ -11,6 +11,7 @@ import SignupPage  from './pages/public/SignupPage'
 import Dashboard   from './pages/Dashboard'
 import Users       from './pages/Users'
 import Companies   from './pages/Companies'
+import Settings    from './pages/Settings'
 import useAuthStore from './store/authStore'
 
 // Inventory sub-pages
@@ -157,6 +158,7 @@ function AppLayout({ isMobile, isSidebarCollapsed, isMobileSidebarOpen, toggleSi
             <Route path="/dashboard"   element={<Dashboard />} />
             <Route path="/users"       element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><Users /></RoleRoute>} />
             <Route path="/companies"   element={<RoleRoute allowedRoles={['SUPER_ADMIN']}><Companies /></RoleRoute>} />
+            <Route path="/settings"     element={<RoleRoute allowedRoles={['SUPER_ADMIN', 'COMPANY_ADMIN']}><Settings /></RoleRoute>} />
 
             {/* Inventory */}
             <Route path="/inventory/products"  element={<Products />} />

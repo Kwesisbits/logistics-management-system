@@ -27,8 +27,10 @@ public class StockLevelEntity {
     @Column(name = "quantity_reserved", nullable = false)
     private int quantityReserved;
 
-    @Column(name = "quantity_available", insertable = false, updatable = false)
-    private int quantityAvailable;
+    @Transient
+    public int calculateAvailable() {
+        return Math.max(0, quantityOnHand - quantityReserved);
+    }
 
     @Version
     private long version;

@@ -215,4 +215,35 @@ public class UserManagementService {
         }
         throw new BusinessException("FORBIDDEN", "Not allowed to manage users");
     }
+
+    @Transactional
+    public UserResponse updateOwnProfile(UUID userId, String firstName, String lastName) {
+        LogisticsSecurityUser actor = IdentitySecurityUtils.requireUser();
+        if (!actor.getUserId().equals(userId)) {
+            throw new BusinessException("FORBIDDEN", "You can only update your own profile");
+        }
+        UserEntity user = userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException("NOT_FOUND", "User not found"));
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        UserEntity saved = userRepository.save(user);
+        log.info("User profile updated: userId={}", userId);
+        return UserResponse.from(saved);
+    }
+
+    @Transactional
+    public void changePassword(UUID userId, String currentPassword, String newPassword) {
+        LogisticsSecurityUser actor = IdentitySecurityUtils.requireUser();
+        if (!actor.getUserId().equals(userId)) {
+            throw new BusinessException("FORBIDDEN", "You can only change your own password");
+        }
+        UserEntity user = userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException("NOT_FOUND", "User not found"));
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new BusinessException("VALIDATION_ERROR", "Current password is incorrect");
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password changed: userId={}", userId);
+    }
 }

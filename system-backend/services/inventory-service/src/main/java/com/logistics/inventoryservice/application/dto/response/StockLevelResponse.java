@@ -14,7 +14,7 @@ public record StockLevelResponse(
     public static StockLevelResponse from(StockLevelEntity e) {
         return new StockLevelResponse(
             e.getStockLevelId(), e.getProductId(), e.getLocationId(),
-            e.getQuantityOnHand(), e.getQuantityReserved(), e.getQuantityAvailable()
+            e.getQuantityOnHand(), e.getQuantityReserved(), e.calculateAvailable()
         );
     }
 }

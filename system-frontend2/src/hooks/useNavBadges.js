@@ -10,9 +10,9 @@ export function useLowStockCountQuery() {
   return useQuery({
     queryKey: ['nav', 'low-stock-count', warehouseId],
     queryFn: async () => {
-      const r = await inventoryApi.get('/stock/low-stock', { params: { warehouseId } })
-      const raw = Array.isArray(r.data) ? r.data : r.data?.data ?? r.data?.items ?? []
-      return Array.isArray(raw) ? raw.length : 0
+      const r = await inventoryApi.get('/stock/low-stock')
+      const raw = Array.isArray(r.data) ? r.data : []
+      return raw.length
     },
     refetchInterval: 60_000,
     staleTime: 30_000,

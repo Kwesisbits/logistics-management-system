@@ -19,10 +19,24 @@ public record CreateOrderRequest(
 ) {
 
     public record OrderItemRequest(
-        @NotNull UUID productId,
+        String productId,
         int quantity,
-        @NotNull BigDecimal unitPrice
-    ) {}
+        BigDecimal unitPrice
+    ) {
+        public UUID parsedProductId() {
+            if (productId == null || productId.isBlank()) return null;
+            try {
+                return UUID.fromString(productId);
+            } catch (IllegalArgumentException e) {
+                try {
+                    int num = Integer.parseInt(productId.trim());
+                    return UUID.fromString("00000000-0000-0000-0000-" + String.format("%012d", num));
+                } catch (NumberFormatException nfe) {
+                    return UUID.nameUUIDFromBytes(("product:" + productId).getBytes());
+                }
+            }
+        }
+    }
 
     public UUID parsedCustomerId() {
         if (customerId == null || customerId.isBlank()) return null;
