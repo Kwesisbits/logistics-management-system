@@ -763,8 +763,8 @@ function Dashboard() {
         <WarehouseChart rows={whRows} animate={ready} />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        <div className="xl:col-span-3 app-card">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div className="xl:col-span-2 app-card">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
             <div>
               <h3 className="font-semibold text-gray-800 dark:text-white">Recent orders</h3>

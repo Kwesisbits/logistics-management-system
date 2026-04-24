@@ -2,6 +2,13 @@ import { create } from 'zustand'
 
 const STORAGE_KEY = 'logistics-theme'
 
+function getSystemTheme() {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  return 'light'
+}
+
 function readStoredTheme() {
   try {
     const v = localStorage.getItem(STORAGE_KEY)
@@ -9,7 +16,7 @@ function readStoredTheme() {
   } catch {
     /* ignore */
   }
-  return 'light'
+  return getSystemTheme()
 }
 
 function applyThemeClass(theme) {
@@ -38,5 +45,5 @@ const useThemeStore = create((set, get) => ({
   },
 }))
 
-export { applyThemeClass, readStoredTheme, STORAGE_KEY }
+export { applyThemeClass, readStoredTheme, STORAGE_KEY, getSystemTheme }
 export default useThemeStore

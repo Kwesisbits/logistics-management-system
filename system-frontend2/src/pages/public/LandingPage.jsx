@@ -597,16 +597,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="mx-auto mt-12 flex max-w-6xl flex-col items-center gap-3 px-4">
-          <span className="text-xs font-medium uppercase tracking-wider text-slate-500">Appearance</span>
-          <div className="flex items-center gap-3 rounded-full border border-white/15 bg-white/5 px-3 py-2 pl-2">
-            <ThemeToggle className="!text-white hover:!bg-white/15 dark:!text-white dark:hover:!bg-white/15" />
-            <span className="pr-1 text-sm text-slate-300">
-              {theme === 'dark' ? 'Dark mode' : 'Light mode'}
-            </span>
-          </div>
-        </div>
-
         <div className="mx-auto mt-10 max-w-6xl border-t border-white/10 px-4 pt-6 text-center text-xs text-slate-500 lg:px-6">
           © 2026 Netiv · All rights reserved · Privacy Policy
         </div>

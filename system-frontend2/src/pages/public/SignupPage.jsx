@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Lock, ArrowLeft } from 'lucide-react'
 import NetivLogo from '../../components/marketing/NetivLogo'
+import FloatingThemeToggle from '../../components/FloatingThemeToggle'
 import { publicIdentityApi } from '../../services/publicIdentityApi'
 import useAuthStore from '../../store/authStore'
 
@@ -164,7 +165,8 @@ export default function SignupPage() {
   const strengthSeg = passwordStrengthSegments(password)
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col lg:flex-row dark:bg-gray-900">
+      <FloatingThemeToggle />
       <div className="lg:w-1/2 bg-brand-navy text-white flex flex-col p-8 lg:p-12">
         <NetivLogo wordClass="text-xl font-semibold text-white" />
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full py-10">
@@ -215,40 +217,40 @@ export default function SignupPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 flex-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-medium text-slate-600">First name *</label>
+                <label className="text-xs font-medium text-slate-600 dark:text-gray-300">First name *</label>
                 <input
                   {...register('firstName')}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                 />
                 {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName.message}</p>}
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600">Last name *</label>
+                <label className="text-xs font-medium text-slate-600 dark:text-gray-300">Last name *</label>
                 <input
                   {...register('lastName')}
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                 />
                 {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName.message}</p>}
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-600">Company name *</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-gray-300">Company name *</label>
               <input
                 {...register('companyName')}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
               {errors.companyName && <p className="mt-1 text-xs text-red-600">{errors.companyName.message}</p>}
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-600">Work email *</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-gray-300">Work email *</label>
               <input
                 type="email"
                 placeholder="you@yourcompany.com"
                 autoComplete="email"
                 {...register('email')}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
               />
               {errors.email && (
                 <p className="mt-1 text-xs text-red-600">
@@ -266,7 +268,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-600">Country *</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-gray-300">Country *</label>
               <select
                 {...register('country')}
                 className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue bg-white"
@@ -282,13 +284,13 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-600">Password *</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-gray-300">Password *</label>
               <div className="relative mt-1">
                 <input
                   type={showPw ? 'text' : 'password'}
                   autoComplete="new-password"
                   {...register('password')}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                 />
                 <button
                   type="button"
@@ -311,13 +313,13 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-600">Confirm password *</label>
+              <label className="text-xs font-medium text-slate-600 dark:text-gray-300">Confirm password *</label>
               <div className="relative mt-1">
                 <input
                   type={showPw2 ? 'text' : 'password'}
                   autoComplete="new-password"
                   {...register('confirmPassword')}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue"
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 pr-10 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                 />
                 <button
                   type="button"
