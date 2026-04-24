@@ -6,10 +6,18 @@ class VectorStoreReader:
     def __init__(self):
         self._pool = None
 
+    def _build_async_url(self) -> str:
+        url = settings.database_url
+        if url.startswith("jdbc:"):
+            url = url[5:]
+        if url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://")
+        return url
+
     async def _get_pool(self):
         if self._pool is None:
             self._pool = await asyncpg.create_pool(
-                settings.async_database_url,
+                self._build_async_url(),
                 min_size=2,
                 max_size=10,
             )

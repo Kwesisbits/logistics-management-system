@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     max_context_tokens: int = 2048
     context_recency_weight: float = 0.3
 
-    model_config = SettingsConfigDict(env_file=".env.local", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
