@@ -13,11 +13,26 @@
     />
     <script>
       (function () {
-        try {
-          var t = localStorage.getItem('logistics-theme')
-          if (t === 'dark') document.documentElement.classList.add('dark')
-          else document.documentElement.classList.remove('dark')
-        } catch (e) {}
+        function applyTheme() {
+          try {
+            var t = localStorage.getItem('logistics-theme')
+            if (t === 'dark') {
+              document.documentElement.classList.add('dark')
+            } else if (t === 'light') {
+              document.documentElement.classList.remove('dark')
+            } else {
+              if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark')
+              } else {
+                document.documentElement.classList.remove('dark')
+              }
+            }
+          } catch (e) {}
+        }
+        applyTheme()
+        if (window.matchMedia) {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme)
+        }
       })()
     </script>
   </head>

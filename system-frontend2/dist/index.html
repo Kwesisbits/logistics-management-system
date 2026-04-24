@@ -13,15 +13,30 @@
     />
     <script>
       (function () {
-        try {
-          var t = localStorage.getItem('logistics-theme')
-          if (t === 'dark') document.documentElement.classList.add('dark')
-          else document.documentElement.classList.remove('dark')
-        } catch (e) {}
+        function applyTheme() {
+          try {
+            var t = localStorage.getItem('logistics-theme')
+            if (t === 'dark') {
+              document.documentElement.classList.add('dark')
+            } else if (t === 'light') {
+              document.documentElement.classList.remove('dark')
+            } else {
+              if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark')
+              } else {
+                document.documentElement.classList.remove('dark')
+              }
+            }
+          } catch (e) {}
+        }
+        applyTheme()
+        if (window.matchMedia) {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme)
+        }
       })()
     </script>
-    <script type="module" crossorigin src="/assets/index-4t7JRdIL.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BaFNubfm.css">
+    <script type="module" crossorigin src="/assets/index-Bx_AuWQS.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Bou9aPxh.css">
   </head>
   <body>
     <div id="root"></div>

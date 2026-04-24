@@ -7,7 +7,7 @@ import { springPageItems } from '../../utils/apiNormalize'
 function OccupancyBar({ current, max }) {
   const cap = Math.max(Number(max) || 0, 1)
   const pct = Math.min(100, Math.round(((Number(current) || 0) / cap) * 100))
-  const tone = pct >= 95 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : pct >= 40 ? 'bg-medium-green' : 'bg-emerald-400'
+  const tone = pct >= 95 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : pct >= 40 ? 'bg-brand-blue' : 'bg-emerald-400'
   return (
     <div className="flex flex-col items-end gap-1 min-w-[120px]">
       <div className="w-full h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
@@ -104,7 +104,7 @@ export default function Locations() {
             <p className="text-sm text-gray-500 mt-0.5">Bins and zones per warehouse ({whName ?? '—'})</p>
           </div>
           {effectiveWid && (
-            <button type="button" onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-3 py-1.5 bg-medium-green text-white rounded text-sm hover:bg-green-700">
+            <button type="button" onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-blue text-white rounded text-sm hover:bg-blue-700">
               <Plus size={16} /> Add
             </button>
           )}
@@ -169,7 +169,7 @@ export default function Locations() {
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border rounded hover:bg-gray-50">Cancel</button>
-            <button type="button" onClick={() => createLocation.mutate()} disabled={createLocation.isPending} className="px-4 py-2 bg-medium-green text-white rounded hover:bg-green-700 disabled:opacity-50">
+            <button type="button" onClick={() => createLocation.mutate()} disabled={createLocation.isPending} className="px-4 py-2 bg-brand-blue text-white rounded hover:bg-blue-700 disabled:opacity-50">
               {createLocation.isPending ? <Loader2 className="animate-spin h-4 w-4" /> : 'Save'}
             </button>
           </div>

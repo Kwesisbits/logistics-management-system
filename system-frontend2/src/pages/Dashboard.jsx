@@ -526,17 +526,6 @@ function Dashboard() {
       icon: Box,
       onClick: () => navigate('/inventory/stock'),
     },
-    ...(canSeeProcurementReorder
-      ? [
-          {
-            label: 'Reorder suggestions',
-            sub: 'Lines below threshold',
-            value: String(reorderRecs.length),
-            icon: TrendingUp,
-            onClick: () => navigate('/procurement/reorder-recommendations'),
-          },
-        ]
-      : []),
   ]
 
   return (
@@ -619,42 +608,6 @@ function Dashboard() {
         })}
       </div>
 
-      {canSeeProcurementReorder && reorderRecs.length > 0 && (
-        <div className="app-card p-5 border-l-[3px] border-l-amber-500">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div>
-              <h3 className="font-semibold text-gray-800 dark:text-white">Top reorder priorities</h3>
-              <p className="text-xs text-gray-400">Highest-urgency lines · pre-filled create PO</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/procurement/reorder-recommendations')}
-              className="text-xs font-semibold text-medium-green hover:underline"
-            >
-              View all
-            </button>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {reorderRecs.slice(0, 3).map((row, i) => (
-              <button
-                key={`${row.productId}-${row.locationId}-${i}`}
-                type="button"
-                onClick={() => navigate(reorderPoHref(row))}
-                className="text-left rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/50 px-4 py-3 hover:border-medium-green/40 transition-colors"
-              >
-                <p className="text-xs font-bold uppercase text-amber-700 dark:text-amber-300">{row.urgency ?? '—'}</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 line-clamp-2">
-                  {row.productName || row.sku || 'Product'}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Qty {row.recommendedQty ?? row.suggestedOrderQuantity ?? '—'}
-                  {row.preferredSupplierName ? ` · ${row.preferredSupplierName}` : ''}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {(isAdmin || isStaff) && (
         <div className="flex flex-col gap-3 rounded-xl border border-blue-100 bg-brand-blue-light px-4 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-blue-900/40 dark:bg-blue-950/20">
@@ -953,3 +906,4 @@ function Dashboard() {
 }
 
 export default Dashboard
+
