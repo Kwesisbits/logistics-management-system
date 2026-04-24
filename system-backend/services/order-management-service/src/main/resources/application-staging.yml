@@ -67,3 +67,9 @@ management:
 logging:
   level:
     com.logistics: INFO
+
+app:
+  kafka:
+    enabled: ${KAFKA_ENABLED:true}
+    retry:
+      enabled: ${KAFKA_RETRY_ENABLED:true}
