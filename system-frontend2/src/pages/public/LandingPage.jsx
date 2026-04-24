@@ -250,14 +250,17 @@ export default function LandingPage() {
               Create Account
             </Link>
           </div>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-slate-800 dark:text-slate-200 lg:hidden"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              type="button"
+              className="rounded-lg p-2 text-slate-800 dark:text-slate-200 lg:hidden"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          </div>
         </div>
       </header>
 

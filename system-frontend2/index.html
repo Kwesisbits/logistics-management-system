@@ -11,7 +11,15 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('logistics-theme')
+          if (t === 'dark') document.documentElement.classList.add('dark')
+          else if (t !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark')
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
