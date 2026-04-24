@@ -52,8 +52,8 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         url = self.database_url
-        if url.startswith("postgresql+asyncpg://"):
-            url = url.replace("postgresql+asyncpg://", "postgresql://")
+        if url.startswith("jdbc:"):
+            url = url[5:]
         return url
 
     @property
