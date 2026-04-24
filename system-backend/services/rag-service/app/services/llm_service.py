@@ -1,7 +1,10 @@
 import os
+import logging
 from collections.abc import Iterator
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class LLMService:
@@ -16,12 +19,15 @@ class LLMService:
     def __init__(self):
         self._client = None
         self._api_key = settings.groq_api_key or os.environ.get("GROQ_API_KEY", "")
+        logger.info(f"GROQ_API_KEY loaded: {'YES' if self._api_key else 'NO (empty or missing)'}")
         if self._api_key:
             try:
                 from groq import AsyncGroq
 
                 self._client = AsyncGroq(api_key=self._api_key)
-            except Exception:
+                logger.info("Groq client initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Groq client: {e}")
                 self._client = None
 
     def generate_stream(self, system_prompt: str, user_message: str) -> Iterator[str]:

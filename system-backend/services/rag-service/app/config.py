@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
 class Settings(BaseSettings):
@@ -43,6 +44,20 @@ class Settings(BaseSettings):
 
     retrieval_top_k: int = 8
     retrieval_min_score: float = 0.3
+
+    max_context_tokens: int = 2048
+    context_recency_weight: float = 0.3
+
+    model_config = SettingsConfigDict(env_file=".env.local", extra="ignore")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        env_key = os.environ.get("GROQ_API_KEY", "")
+        if env_key and not self.groq_api_key:
+            self.groq_api_key = env_key
+
+
+settings = Settings()
 
     max_context_tokens: int = 2048
     context_recency_weight: float = 0.3
