@@ -3,14 +3,9 @@ import os
 
 
 class Settings(BaseSettings):
-    database_url: str = (
-        "postgresql://postgres:Daily2020.@localhost:5432/logistics_rag_db"
-    )
-    async_database_url: str = (
-        "postgresql+asyncpg://postgres:Daily2020.@localhost:5432/logistics_rag_db"
-    )
+    database_url: str = ""
 
-    kafka_bootstrap_servers: str = "localhost:9092"
+    kafka_bootstrap_servers: str = ""
     kafka_group_id: str = "rag-service"
     kafka_topics: list[str] = [
         "inventory.stock.reserved",
@@ -52,9 +47,11 @@ class Settings(BaseSettings):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        env_key = os.environ.get("GROQ_API_KEY", "")
-        if env_key and not self.groq_api_key:
-            self.groq_api_key = env_key
+        self.groq_api_key = os.environ.get("GROQ_API_KEY", "")
+
+    @property
+    def is_kafka_available(self) -> bool:
+        return bool(self.kafka_bootstrap_servers)
 
 
 settings = Settings()
