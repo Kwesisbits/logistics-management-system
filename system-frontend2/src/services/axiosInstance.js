@@ -5,12 +5,12 @@ const getEnv = (...keys) => keys.map((k) => import.meta.env[k]).find(Boolean)
 
 /** Paths after host:port must match each service’s @RequestMapping prefix (see system-backend). */
 const defaultBases = {
-  identity: 'http://localhost:8081/api/v1/identity',
-  inventory: 'http://localhost:8082/api/v1/inventory',
-  warehouse: 'http://localhost:8083/api/v1/warehouse',
-  orders: 'http://localhost:8084/api/v1/orders',
-  procurement: 'http://localhost:8085/api/v1/procurement',
-  reporting: 'http://localhost:8087/api/v1/reports',
+  identity: '',
+  inventory: '',
+  warehouse: '',
+  orders: '',
+  procurement: '',
+  reporting: '',
 }
 
 const identityBaseUrl = getEnv('VITE_IDENTITY_SERVICE_URL', 'VITE_IDENTITY_API_URL') || defaultBases.identity
