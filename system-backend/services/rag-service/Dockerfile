@@ -8,9 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy from rag-service subdirectory relative to build context
-COPY system-backend/services/rag-service/requirements.txt .
-COPY system-backend/services/rag-service/app/ ./app/
+# Copy from services/rag-service relative to build context (system-backend)
+COPY services/rag-service/requirements.txt .
+COPY services/rag-service/app/ ./app/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
