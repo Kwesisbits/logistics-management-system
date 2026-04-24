@@ -58,11 +58,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-    max_context_tokens: int = 2048
-    context_recency_weight: float = 0.3
-
-    model_config = SettingsConfigDict(env_file=".env.local", extra="ignore")
-
-
-settings = Settings()
