@@ -46,7 +46,7 @@ class RAGPipeline:
             top_k=settings.retrieval_top_k,
             entity_type=entity_filter,
             warehouse_id=warehouse_id,
-            min_score=0.0,
+            min_score=settings.retrieval_min_score,
         )
 
         filtered_docs = self._filter_by_role(retrieved_docs, user_role)
@@ -84,10 +84,8 @@ class RAGPipeline:
 
         filtered = []
         for doc in docs:
-            if (
-                hasattr(doc, "event_type")
-                and doc.event_type in self.RESTRICTED_EVENT_TYPES
-            ):
+            event_type = doc.get("event_type") if isinstance(doc, dict) else getattr(doc, "event_type", None)
+            if event_type in self.RESTRICTED_EVENT_TYPES:
                 continue
             filtered.append(doc)
 

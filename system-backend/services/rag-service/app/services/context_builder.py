@@ -1,7 +1,5 @@
 from datetime import UTC, datetime
 
-from app.models.schemas import RetrievedDocument
-
 SYSTEM_PROMPT_TEMPLATE = """You are LogiFlow AI, an operational assistant for logistics and inventory.
 Answer using only provided operational context. If data is missing, say so.
 Current date and time: {now}
@@ -28,7 +26,7 @@ class ContextBuilder:
 
     def build_prompt_context(
         self,
-        retrieved_docs: list[RetrievedDocument],
+        retrieved_docs: list,
         user_role: str,
         warehouse_id: str | None,
     ) -> str:
@@ -45,19 +43,30 @@ class ContextBuilder:
         else:
             filtered_docs = []
             for doc in retrieved_docs:
-                if doc.event_type in self.RESTRICTED_CONTENT_TYPES:
+                event_type = doc.get("event_type") if isinstance(doc, dict) else getattr(doc, "event_type", None)
+                if event_type in self.RESTRICTED_CONTENT_TYPES:
                     required_level = 4
                     if user_level < required_level:
                         continue
                 filtered_docs.append(doc)
 
+            def get_score(d):
+                if isinstance(d, dict):
+                    return d.get("score", d.get("similarity", 0))
+                return getattr(d, "similarity", 0)
+
             sorted_docs = sorted(
-                filtered_docs, key=lambda d: d.similarity, reverse=True
+                filtered_docs, key=get_score, reverse=True
             )
-            context = "\n".join(
-                f"[{d.event_type}] {d.created_at.strftime('%Y-%m-%d %H:%M')}: {d.content}"
-                for d in sorted_docs[:8]
-            )
+
+            def format_doc(d):
+                content = d.get("content") if isinstance(d, dict) else getattr(d, "content", "")
+                event = d.get("event_type") if isinstance(d, dict) else getattr(d, "event_type", "unknown")
+                created = d.get("created_at") if isinstance(d, dict) else getattr(d, "created_at", None)
+                ts = created.strftime('%Y-%m-%d %H:%M') if created else "unknown"
+                return f"[{event}] {ts}: {content}"
+
+            context = "\n".join(format_doc(d) for d in sorted_docs[:8])
 
             if not sorted_docs:
                 context = "No operational events accessible to your role."

@@ -50,6 +50,13 @@ class Settings(BaseSettings):
         self.groq_api_key = os.environ.get("GROQ_API_KEY", "")
 
     @property
+    def async_database_url(self) -> str:
+        url = self.database_url
+        if url.startswith("postgresql+asyncpg://"):
+            url = url.replace("postgresql+asyncpg://", "postgresql://")
+        return url
+
+    @property
     def is_kafka_available(self) -> bool:
         return bool(self.kafka_bootstrap_servers)
 
